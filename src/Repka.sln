@@ -1,0 +1,55 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.4.33110.190
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Repka.Core", "Repka.Core\Repka.Core.csproj", "{C36DC602-A2CF-4D39-A3F1-FC9E23A3CD63}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Repka.CSharp", "Repka.CSharp\Repka.CSharp.csproj", "{D3DEB0DE-FDC8-4F3B-B17E-77AEBB671708}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Repka.LocalFs", "Repka.LocalFs\Repka.LocalFs.csproj", "{C075E43F-8DD7-42B5-A6B4-64B507FEBF4A}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Repka.Mermaid", "Repka.Mermaid\Repka.Mermaid.csproj", "{185EA9B5-8986-4639-AC68-1DB25F69BB40}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Repka.Json", "Repka.Json\Repka.Json.csproj", "{CDE3A96B-CC0C-4816-B577-E52EDA2710DF}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Repka.Interactive", "Repka.Interactive\Repka.Interactive.csproj", "{BA017E86-29AB-44FE-A64F-218753C5D1F4}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C36DC602-A2CF-4D39-A3F1-FC9E23A3CD63}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C36DC602-A2CF-4D39-A3F1-FC9E23A3CD63}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C36DC602-A2CF-4D39-A3F1-FC9E23A3CD63}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C36DC602-A2CF-4D39-A3F1-FC9E23A3CD63}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D3DEB0DE-FDC8-4F3B-B17E-77AEBB671708}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D3DEB0DE-FDC8-4F3B-B17E-77AEBB671708}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D3DEB0DE-FDC8-4F3B-B17E-77AEBB671708}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D3DEB0DE-FDC8-4F3B-B17E-77AEBB671708}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C075E43F-8DD7-42B5-A6B4-64B507FEBF4A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C075E43F-8DD7-42B5-A6B4-64B507FEBF4A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C075E43F-8DD7-42B5-A6B4-64B507FEBF4A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C075E43F-8DD7-42B5-A6B4-64B507FEBF4A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{185EA9B5-8986-4639-AC68-1DB25F69BB40}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{185EA9B5-8986-4639-AC68-1DB25F69BB40}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{185EA9B5-8986-4639-AC68-1DB25F69BB40}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{185EA9B5-8986-4639-AC68-1DB25F69BB40}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CDE3A96B-CC0C-4816-B577-E52EDA2710DF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CDE3A96B-CC0C-4816-B577-E52EDA2710DF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CDE3A96B-CC0C-4816-B577-E52EDA2710DF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CDE3A96B-CC0C-4816-B577-E52EDA2710DF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BA017E86-29AB-44FE-A64F-218753C5D1F4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BA017E86-29AB-44FE-A64F-218753C5D1F4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BA017E86-29AB-44FE-A64F-218753C5D1F4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BA017E86-29AB-44FE-A64F-218753C5D1F4}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {E4528191-330D-4275-87F2-8B61225C9C37}
+	EndGlobalSection
+EndGlobal
