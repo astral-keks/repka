@@ -2,20 +2,24 @@
 {
     public static class CSharpLabels
     {
-        public const string Project = nameof(Project);
-        public const string ProjectRef = nameof(ProjectRef);
+        public const string IsProject = nameof(IsProject);
+        public const string ContainsProject = nameof(ContainsProject);
+        public const string UsesProject = nameof(UsesProject);
 
-        public const string Package = nameof(Package);
-        public const string PackageIdRef = nameof(PackageIdRef);
-        public const string PackageVersionRef = nameof(PackageVersionRef);
-        public const string PackageProject = nameof(PackageProject);
+        public const string IsPackage = nameof(IsPackage);
+        public const string UsesPackageId = nameof(UsesPackageId);
+        public const string UsesPackageVersion = nameof(UsesPackageVersion);
+        public const string DefinesPackage = nameof(DefinesPackage);
 
-        public const string Solution = nameof(Solution);
-        public const string SolutionRef = nameof(SolutionRef);
+        public const string IsSolution = nameof(IsSolution);
 
-        public const string ExecutableProject = nameof(ExecutableProject);
+        public const string DefinesExecutable = nameof(DefinesExecutable);
 
-        public const string LibraryRef = nameof(LibraryRef);
-        public const string LibraryProject = nameof(LibraryProject);
+        public const string UsesLibrary = nameof(UsesLibrary);
+        public const string DefinesLibrary = nameof(DefinesLibrary);
+
+        public const string IsSymbol = nameof(IsSymbol);
+        public const string DefinesSymbol = nameof(DefinesSymbol);
+        public const string UsesSymbol = nameof(UsesSymbol);
     }
 }

@@ -1,39 +1,35 @@
-﻿namespace Repka.Graphs
+﻿using Repka.Caching;
+
+namespace Repka.Graphs
 {
     public class GraphFactory
     {
-        private readonly List<GraphProvider> _providers;
+        private readonly IEnumerable<GraphProvider> _providers;
+        private readonly ObjectCache? _cache;
 
-        public GraphFactory(params GraphProvider[] providers)
-            : this(providers.AsEnumerable())
+        public GraphFactory(ObjectCache? cache, params GraphProvider[] providers)
         {
+            _providers = providers;
+            _cache = cache;
         }
 
-        public GraphFactory(IEnumerable<GraphProvider> providers)
+        public Graph CreateGraph(GraphKey key)
         {
-            _providers = providers.ToList();
-        }
-
-        public Graph CreateGraph(params GraphKey[] keys)
-        {
-            Graph graph = new();
-
-            foreach (var provider in _providers)
+            Graph createGraph()
             {
-                foreach (var key in keys)
+                Graph graph = new();
+
+                foreach (var provider in _providers)
                 {
-                    foreach (var token in provider.GetTokens(key, graph))
-                    {
-                        graph.Add(token);
-                        foreach (var attribute in provider.GetAttributes(token, graph))
-                        {
-                            graph.Set(attribute);
-                        }
-                    }
+                    provider.AddTokens(key, graph);
                 }
+
+                return graph;
             }
 
-            return graph;
+            return _cache is not null
+                ? _cache.GetOrAdd(key, createGraph)
+                : createGraph();
         }
     }
 }

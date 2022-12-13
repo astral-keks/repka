@@ -4,15 +4,18 @@ namespace Repka.Graphs
 {
     public class FileSystemProvider : GraphProvider
     {
-        public FileSystem FileSystem { get; init; } = FileSystemDefinitions.Empty();
+        public FileSystem FileSystem { private get; init; } = FileSystemDefinitions.Empty();
 
         public override IEnumerable<GraphToken> GetTokens(GraphKey key, Graph graph)
         {
             FileSystemGrouping grouping = new();
-
             FileSystemEntry root = new(key);
+
+            int i = 0;
+            Progress.Start("Files and folders");
             foreach (var entry in FileSystem.GetEntries(root))
             {
+                Progress.Report($"Files and folders: {++i}");
                 GraphKey? sourceKey = entry.Origin is not null ? new(entry.Origin) : default;
                 GraphKey targetKey = new(entry.Path);
 
@@ -41,22 +44,7 @@ namespace Repka.Graphs
                     }
                 }
             }
-        }
-
-        public override IEnumerable<GraphAttribute> GetAttributes(GraphToken token, Graph graph)
-        {
-            if (graph.Element(token) is GraphNode dirNode && dirNode.Labels.Contains(FileSystemLabels.Directory))
-            {
-                string path = dirNode.Key.Resource;
-
-                yield return new GraphAttribute<DirectoryInfo>(token, new DirectoryInfo(path));
-            }
-            else if (graph.Element(token) is GraphNode fileNode && fileNode.Labels.Contains(FileSystemLabels.File))
-            {
-                string path = fileNode.Key.Resource;
-
-                yield return new GraphAttribute<FileInfo>(token, new FileInfo(path));
-            }
+            Progress.Finish($"Files and folders: {i}");
         }
 
         private GraphToken? GetNodeToken(GraphKey key, FileSystemGrouping grouping)

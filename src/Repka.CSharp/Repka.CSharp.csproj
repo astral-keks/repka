@@ -16,6 +16,7 @@
     <PackageReference Include="Microsoft.Build" Version="17.1.0" />
     <PackageReference Include="Microsoft.Build.Framework" Version="17.1.0" />
     <PackageReference Include="Microsoft.CodeAnalysis" Version="4.4.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="4.4.0" />
   </ItemGroup>
 
   <ItemGroup>

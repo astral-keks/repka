@@ -11,9 +11,15 @@ namespace Repka.Graphs
         public void Add(GraphToken token)
         {
             if (token is GraphNodeToken nodeToken)
-                _nodes.Add(nodeToken, token => token.Labels.AddRange(nodeToken.Labels));
+            {
+                lock (_nodes)
+                    _nodes.Add(nodeToken, token => token.Labels.AddRange(nodeToken.Labels));
+            }
             else if (token is GraphLinkToken linkToken)
-                _links.Add(linkToken, token => token.Labels.AddRange(linkToken.Labels));
+            {
+                lock (_links)
+                    _links.Add(linkToken, token => token.Labels.AddRange(linkToken.Labels));
+            }
         }
 
         public bool Contains(GraphToken token)
@@ -27,7 +33,8 @@ namespace Repka.Graphs
 
         public void Set(GraphAttribute attribute)
         {
-            _attributes.Add(attribute);
+            lock(_attributes)
+                _attributes.Add(attribute);
         }
 
         public IEnumerable<GraphAttribute> Attributes(GraphToken referer)

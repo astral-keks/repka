@@ -1,13 +1,19 @@
-﻿namespace Repka.Graphs
+﻿
+namespace Repka.Graphs
 {
     public abstract class GraphProvider
     {
-        public virtual IEnumerable<GraphToken> GetTokens(GraphKey key, Graph graph)
+        public GraphProgress Progress { protected get; init; } = new();
+
+        public virtual void AddTokens(GraphKey key, Graph graph)
         {
-            yield break;
+            foreach (var token in GetTokens(key, graph))
+            {
+                graph.Add(token);
+            }
         }
 
-        public virtual IEnumerable<GraphAttribute> GetAttributes(GraphToken token, Graph graph)
+        public virtual IEnumerable<GraphToken> GetTokens(GraphKey key, Graph graph)
         {
             yield break;
         }
