@@ -88,10 +88,14 @@ namespace Repka.Graphs
 
             INamedTypeSymbol? namedTypeSymbol = default;
             if (typeSymbol is INamedTypeSymbol)
-                namedTypeSymbol = typeSymbol as INamedTypeSymbol;
+            {
+                namedTypeSymbol = (INamedTypeSymbol)typeSymbol;
+                if (namedTypeSymbol.IsGenericType)
+                    namedTypeSymbol = namedTypeSymbol.OriginalDefinition;
+            }
             else if (typeSymbol is IMethodSymbol methodSymbol && methodSymbol.IsExtensionMethod)
                 namedTypeSymbol = methodSymbol.ContainingType;
-
+            
             if (namedTypeSymbol is not null)
             {
                 GraphKey fileKey = file.FullName;
