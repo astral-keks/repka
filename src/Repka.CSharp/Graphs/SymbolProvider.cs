@@ -56,7 +56,7 @@ namespace Repka.Graphs
         {
             foreach (var descendant in syntax.DescendantNodes())
             {
-                if (descendant is TypeDeclarationSyntax typeDeclarationSyntax)
+                if (descendant is BaseTypeDeclarationSyntax typeDeclarationSyntax)
                 {
                     foreach (var token in GetTypeDeclarationTokens(typeDeclarationSyntax, semantic, file))
                         yield return token;
@@ -69,7 +69,7 @@ namespace Repka.Graphs
             }
         }
 
-        private IEnumerable<GraphToken> GetTypeDeclarationTokens(TypeDeclarationSyntax typeSyntax, SemanticModel semantic, FileInfo file)
+        private IEnumerable<GraphToken> GetTypeDeclarationTokens(BaseTypeDeclarationSyntax typeSyntax, SemanticModel semantic, FileInfo file)
         {
             INamedTypeSymbol? typeSymbol = semantic.GetDeclaredSymbol(typeSyntax);
             if (typeSymbol is not null)
