@@ -1,54 +1,94 @@
 ﻿using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Repka.Caching;
 
 namespace Repka.Graphs
 {
     public class SymbolProvider : GraphProvider
     {
+        public CacheProvider Caching { get; init; } = new();
+
         public HashSet<string> Skip { get; init; } = new();
 
         public int Threads { get; init; } = 1;
 
-        public override void AddTokens(GraphKey key, Graph graph)
+        public override IEnumerable<GraphToken> GetTokens(GraphKey key, Graph graph)
         {
+            ICollection<SymbolSource> sources = GetSources(key);
+            if (sources.Any())
+            {
+                using SymbolCache cache = new(Caching.GetCache(key));
+
+                Lazy<Compilation> compilation = new(() => GetCompilation(sources), isThreadSafe: true);
+                foreach (var symbol in GetTokens(sources, compilation, cache))
+                {
+                    yield return symbol;
+                }
+            }
+        }
+
+        private ICollection<SymbolSource> GetSources(GraphKey key)
+        {
+            List<SymbolSource> sources = new();
+
             DirectoryInfo directory = new(key);
             if (directory.Exists)
             {
-                Progress.Start($"Sources:");
-
                 int fileCount = 0;
+                Progress.Start($"Files *.cs:");
                 FileInfo[] files = directory.GetFiles("*.cs", SearchOption.AllDirectories);
-                var documents = files.AsParallel().WithDegreeOfParallelism(Threads)
+                sources.AddRange(files.AsParallel().WithDegreeOfParallelism(Threads)
                     .Select(file =>
                     {
                         Interlocked.Increment(ref fileCount);
-                        Progress.Report($"Sources: {fileCount} of {files.Length}");
+                        Progress.Report($"Files *.cs: {fileCount} of {files.Length}");
                         return file;
                     })
                     .Where(file => !Skip.Any(skip => file.FullName.Contains(skip)))
-                    .Select(file => (File: file, Syntax: file.ToSyntax()))
-                    .ToList();
-                Progress.Finish($"Sources: {fileCount}");
+                    .Select(file => new SymbolSource(key, file)));
+                Progress.Finish($"Files *.cs: {fileCount}");
+            }
 
-                CSharpCompilation compilation = CSharpCompilation.Create(directory.FullName.GetHashCode().ToString());
-                compilation = compilation.AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location)); // mscorlib
-                compilation = compilation.AddSyntaxTrees(documents.Select(document => document.Syntax.Tree));
+            return sources;
+        }
 
-                Progress.Start($"Documents:");
-                int documentCount = 0;
-                documents.AsParallel().WithDegreeOfParallelism(Threads).ForAll(document =>
+        private Compilation GetCompilation(ICollection<SymbolSource> sources)
+        {
+            CSharpCompilation compilation = CSharpCompilation.Create(Guid.NewGuid().ToString());
+            compilation = compilation.AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location)); // mscorlib
+            compilation = compilation.AddSyntaxTrees(sources.Select(source => source.SyntaxTree));
+            return compilation;
+        }
+
+        private IEnumerable<GraphToken> GetTokens(ICollection<SymbolSource> sources, Lazy<Compilation> compilation, SymbolCache cache)
+        {
+            int sourceCount = 0;
+            Progress.Start($"Sources:");
+            ParallelQuery<GraphToken> symbols = sources.AsParallel()
+                .WithDegreeOfParallelism(Threads)
+                .WithMergeOptions(ParallelMergeOptions.NotBuffered)
+                .SelectMany(source =>
                 {
-                    Interlocked.Increment(ref documentCount);
-                    Progress.Report($"Documents: {documentCount} of {documents.Count}");
+                    Interlocked.Increment(ref sourceCount);
+                    Progress.Report($"Sources: {sourceCount} of {sources.Count}");
 
-                    SemanticModel semantic = compilation.GetSemanticModel(document.Syntax.Tree, ignoreAccessibility: true);
-                    foreach (var token in GetTokens(document.Syntax.Unit, semantic, document.File))
-                    {
-                        graph.Add(token);
-                    }
+                    return cache.GetOrAdd(source, () => GetTokens(source, compilation.Value).ToList());
                 });
-                Progress.Finish($"Documents: {documentCount}");
+            foreach (var symbol in symbols)
+            {
+                yield return symbol;
+            }
+
+            Progress.Finish($"Sources: {sourceCount}");
+        }
+
+        private IEnumerable<GraphToken> GetTokens(SymbolSource source, Compilation compilation)
+        {
+            SemanticModel semantic = compilation.GetSemanticModel(source.SyntaxTree, ignoreAccessibility: true);
+            foreach (var token in GetTokens(source.SyntaxRoot, semantic, source.File))
+            {
+                yield return token;
             }
         }
 

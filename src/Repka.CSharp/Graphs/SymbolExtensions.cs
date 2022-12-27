@@ -1,26 +1,11 @@
 ﻿using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.Text;
 using Microsoft.CodeAnalysis;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.FindSymbols;
 
 namespace Repka.Graphs
 {
     internal static class SymbolExtensions
     {
-        public static (SyntaxTree Tree, CompilationUnitSyntax Unit) ToSyntax(this FileInfo file)
-        {
-            SourceText text = SourceText.From(File.ReadAllText(file.FullName));
-            SyntaxTree tree = CSharpSyntaxTree.ParseText(text);
-            CompilationUnitSyntax unit = tree.GetCompilationUnitRoot();
-            return (tree, unit);
-        }
-
         public static ISymbol? GetDeclaredSymbol(this CSharpCompilation compilation, SyntaxNode syntax)
         {
             var semantic = compilation.GetSemanticModel(syntax.SyntaxTree, ignoreAccessibility: true);

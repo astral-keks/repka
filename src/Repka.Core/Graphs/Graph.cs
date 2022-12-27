@@ -12,13 +12,13 @@ namespace Repka.Graphs
         {
             if (token is GraphNodeToken nodeToken)
             {
-                lock (_nodes)
-                    _nodes.Add(nodeToken, token => token.Labels.AddRange(nodeToken.Labels));
+                _nodes.Add(nodeToken);
+                _nodes.Find(nodeToken)?.Labels.AddRange(nodeToken.Labels);
             }
             else if (token is GraphLinkToken linkToken)
             {
-                lock (_links)
-                    _links.Add(linkToken, token => token.Labels.AddRange(linkToken.Labels));
+                _links.Add(linkToken);
+                _links.Find(linkToken)?.Labels.AddRange(linkToken.Labels);
             }
         }
 
@@ -33,13 +33,12 @@ namespace Repka.Graphs
 
         public void Set(GraphAttribute attribute)
         {
-            lock(_attributes)
-                _attributes.Add(attribute);
+            _attributes.Add(attribute);
         }
 
         public IEnumerable<GraphAttribute> Attributes(GraphToken referer)
         {
-            return _attributes.Get(referer);
+            return _attributes.FindAll(referer);
         }
 
         public GraphElement? Element(GraphToken token)
@@ -56,7 +55,7 @@ namespace Repka.Graphs
 
         public GraphNode? Node(GraphKey key)
         {
-            ISet<GraphNodeToken> nodeTokens = _nodes.Get(key);
+            ISet<GraphNodeToken> nodeTokens = _nodes.FindAll(key);
             return nodeTokens.FirstOrDefault().ToOptional()
                 .Map(nodeToken => new GraphNode(nodeToken, this))
                 .OrElseDefault();
@@ -71,7 +70,7 @@ namespace Repka.Graphs
 
         public GraphLink? Link(GraphKey sourceKey, GraphKey targetKey)
         {
-            ISet<GraphLinkToken> linkTokens = _links.Get(GraphKey.Compose(sourceKey, targetKey));
+            ISet<GraphLinkToken> linkTokens = _links.FindAll(GraphKey.Compose(sourceKey, targetKey));
             return linkTokens.FirstOrDefault().ToOptional()
                 .Map(linkToken => new GraphLink(linkToken, this))
                 .OrElseDefault();
@@ -79,7 +78,7 @@ namespace Repka.Graphs
 
         public IEnumerable<GraphLink> Links(GraphKey nodeKey, params GraphLabel[] labels)
         {
-            return _links.Get(nodeKey)
+            return _links.FindAll(nodeKey)
                 .Select(linkToken => new GraphLink(linkToken, this))
                 .Where(link => link.Labels.Any(labels));
         }
