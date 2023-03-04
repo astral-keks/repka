@@ -1,6 +1,6 @@
-﻿namespace Repka.Graphs
+﻿namespace Repka.Projects
 {
-    public class LibraryReference
+    internal class LibraryReference
     {
         public LibraryReference(string relativePath, string absolutePath)
         {

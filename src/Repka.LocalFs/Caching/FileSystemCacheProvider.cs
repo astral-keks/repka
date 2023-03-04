@@ -1,35 +1,35 @@
-﻿namespace Repka.Caching
+﻿using Repka.FileSystems;
+
+namespace Repka.Caching
 {
     public class FileSystemCacheProvider : CacheProvider
     {
-        public string Root { get; init; } = Directory.GetCurrentDirectory();
+        public string? Root { get; init; }
 
-        protected override List<CacheEntry> Read(string cacheName)
+        protected override List<CacheEntry> Read(string store, string name)
         {
             List<CacheEntry> entries = new(0);
 
-            FileSystemCacheLocation location = new(cacheName);
-            string path = location.FullName(Root);
+            string directory = FileSystemPaths.GetRootPath(Root, store);
+            Directory.CreateDirectory(directory);
 
-            if (File.Exists(path))
+            string location = Path.Combine(directory, $"{name}.txt");
+            if (File.Exists(location))
             {
-                using StreamReader reader = new(path);
+                using StreamReader reader = new(location);
                 entries.AddRange(reader.ReadEntries());
             }
 
             return entries;
         }
 
-        protected override void Write(string cacheName, IEnumerable<CacheEntry> entries)
+        protected override void Write(string store, string name, IEnumerable<CacheEntry> entries)
         {
-            FileSystemCacheLocation location = new(cacheName);
-            string path = location.FullName(Root);
+            string directory = FileSystemPaths.GetRootPath(Root, store);
+            Directory.CreateDirectory(directory);
 
-            string? directory = Path.GetDirectoryName(path);
-            if (directory is not null)
-                Directory.CreateDirectory(directory);
-
-            using StreamWriter writer = new(path, append: false);
+            string location = Path.Combine(directory, $"{name}.txt");
+            using StreamWriter writer = new(location, append: false);
             writer.WriteEntries(entries);
         }
     }

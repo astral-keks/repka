@@ -15,7 +15,7 @@ namespace Repka.Graphs
             Progress.Start("Files and folders");
             foreach (var entry in FileSystem.GetEntries(root))
             {
-                Progress.Report($"Files and folders: {++i}");
+                Progress.Notify($"Files and folders: {++i}");
                 GraphKey? sourceKey = entry.Origin is not null ? new(entry.Origin) : default;
                 GraphKey targetKey = new(entry.Path);
 

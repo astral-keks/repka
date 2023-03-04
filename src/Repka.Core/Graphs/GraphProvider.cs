@@ -1,9 +1,12 @@
 ﻿
+using Repka.Diagnostics;
+using static Repka.Diagnostics.Progress;
+
 namespace Repka.Graphs
 {
     public abstract class GraphProvider
     {
-        public GraphProgress Progress { protected get; init; } = new();
+        public Progress Progress { protected get; init; } = new StdIO();
 
         public virtual void AddTokens(GraphKey key, Graph graph)
         {

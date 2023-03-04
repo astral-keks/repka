@@ -1,7 +1,7 @@
 ﻿using Microsoft.Build.Construction;
 using Repka.Optionals;
 
-namespace Repka.Graphs
+namespace Repka.Projects
 {
     internal static class ProjectExtensions
     {
@@ -21,6 +21,11 @@ namespace Repka.Graphs
         {
             string? packageId = project.Properties.FirstOrDefault(property => property.ElementName == "PackageId")?.Value;
             return packageId; // !string.IsNullOrWhiteSpace(packageId) ? packageId : project.GetAssemblyName();
+        }
+
+        public static bool IsPackageable(this ProjectRootElement project)
+        {
+            return !string.IsNullOrWhiteSpace(project.GetPackageId());
         }
 
         public static bool IsExeOutputType(this ProjectRootElement project)
@@ -50,7 +55,7 @@ namespace Repka.Graphs
             {
                 string outputType = project.GetOutputType() ?? "";
                 string extension = outputType.Contains("exe", StringComparison.OrdinalIgnoreCase) ? ".exe" : ".dll";
-                
+
                 yield return Path.Combine(project.DirectoryPath, "bin", "Debug", $"{assemblyName}.{extension}");
                 yield return Path.Combine(project.DirectoryPath, "bin", "Release", $"{assemblyName}.{extension}");
             }
@@ -95,6 +100,13 @@ namespace Repka.Graphs
                     .Select(item => item.Metadata.FirstOrDefault(metadata => metadata.Name == "HintPath")?.Value)
                     .OfType<string>()
                     .Select(hintPath => new LibraryReference(hintPath, Path.GetFullPath(Path.Combine(directory, hintPath)))));
+        }
+
+        public static IEnumerable<GacReference> GetGacReferences(this ProjectRootElement project)
+        {
+            return project.Items
+                .Where(item => item.ElementName == "Reference" && !item.Metadata.Any(metadata => metadata.Name == "HintPath"))
+                .Select(item => new GacReference(item.Include));
         }
     }
 }

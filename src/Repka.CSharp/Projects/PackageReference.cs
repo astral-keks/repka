@@ -1,6 +1,6 @@
-﻿namespace Repka.Graphs
+﻿namespace Repka.Projects
 {
-    public class PackageReference
+    internal class PackageReference
     {
         public PackageReference(string packageId, string? packageVersion)
         {
@@ -11,5 +11,9 @@
         public string Id { get; }
 
         public string? Version { get; }
+
+        public string Name => Version is not null
+            ? $"{Id}:{Version}"
+            : Id;
     }
 }

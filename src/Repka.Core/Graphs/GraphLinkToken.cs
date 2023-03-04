@@ -12,5 +12,10 @@
         public GraphKey SourceKey { get; }
 
         public GraphKey TargetKey { get; }
+
+        public override string ToString()
+        {
+            return $"SourceKey={SourceKey}, TargetKey={TargetKey}";
+        }
     }
 }

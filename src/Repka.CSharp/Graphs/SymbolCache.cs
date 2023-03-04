@@ -1,4 +1,6 @@
 ﻿using Repka.Caching;
+using Repka.Graphs;
+using Repka.Symbols;
 
 namespace Repka.Graphs
 {
@@ -16,7 +18,7 @@ namespace Repka.Graphs
             _cache?.Dispose();
         }
 
-        public ICollection<GraphToken> GetOrAdd(SymbolSource source, Func<ICollection<GraphToken>> factory)
+        public ICollection<GraphToken> GetOrAdd(WorkspaceSyntax source, Func<ICollection<GraphToken>> factory)
         {
             Lazy<ICollection<GraphToken>> tokens = new(factory);
 
@@ -31,7 +33,7 @@ namespace Repka.Graphs
             CacheEntry? cached = _cache?.GetOrAdd(entry);
 
             return cached is not null
-                ? ReadTokens(cached.Content).ToList() 
+                ? ReadTokens(cached.Content).ToList()
                 : tokens.Value;
         }
 

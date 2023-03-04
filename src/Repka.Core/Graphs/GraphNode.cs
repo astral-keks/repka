@@ -1,8 +1,13 @@
 ﻿namespace Repka.Graphs
 {
-    public sealed class GraphNode : GraphElement
+    public class GraphNode : GraphElement
     {
         private readonly GraphNodeToken _token;
+
+        protected GraphNode(GraphNode node)
+            : this(node._token, node.Graph)
+        {
+        }
 
         internal GraphNode(GraphNodeToken token, Graph graph)
             : base(token, graph)

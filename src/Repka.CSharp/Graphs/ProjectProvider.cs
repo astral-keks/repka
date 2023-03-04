@@ -1,4 +1,6 @@
 ﻿using Microsoft.Build.Construction;
+using Repka.Projects;
+using static Repka.Graphs.PackageDsl;
 
 namespace Repka.Graphs
 {
@@ -10,33 +12,26 @@ namespace Repka.Graphs
             if (directory.Exists)
             {
                 int i = 0;
-                Progress.Start($"Projects and packages");
+                Progress.Start($"Projects: ");
                 foreach (var projectFile in directory.EnumerateFiles("*.csproj", SearchOption.AllDirectories))
                 {
-                    Progress.Report($"Projects and packages: {++i}");
+                    Progress.Notify($"Projects: {++i}");
                     ProjectRootElement project = projectFile.ToProject();
 
                     GraphKey projectKey = new(projectFile.FullName);
                     GraphNodeToken projectNode = new(projectKey, CSharpLabels.IsProject);
-
                     if (project.IsExeOutputType())
                         projectNode.Labels.Add(CSharpLabels.DefinesExecutable);
                     if (project.IsDllOutputType())
                         projectNode.Labels.Add(CSharpLabels.DefinesLibrary);
+                    if (project.IsPackageable())
+                        projectNode.Labels.Add(CSharpLabels.DefinesPackage);
+                    yield return projectNode;
 
                     foreach (string dllPath in project.GetDllAssemblyPaths())
                     {
                         GraphKey dllKey = new(dllPath);
                         yield return new GraphLinkToken(projectKey, dllKey, CSharpLabels.DefinesLibrary);
-                    }
-
-                    string? packageId = project.GetPackageId();
-                    if (!string.IsNullOrWhiteSpace(packageId))
-                    {
-                        GraphKey packageKey = new PackageKey(packageId);
-                        yield return new GraphNodeToken(packageKey, CSharpLabels.IsPackage);
-                        yield return new GraphLinkToken(projectKey, packageKey);
-                        projectNode.Labels.Add(CSharpLabels.DefinesPackage);
                     }
 
                     foreach (var reference in project.GetPackageReferences())
@@ -59,10 +54,8 @@ namespace Repka.Graphs
                         GraphKey dllReferenceKey = new(reference.AbsolutePath);
                         yield return new GraphLinkToken(projectKey, dllReferenceKey, CSharpLabels.UsesLibrary);
                     }
-
-                    yield return projectNode;
                 }
-                Progress.Finish($"Projects and packages: {i}");
+                Progress.Finish($"Projects: {i}");
             }
         }
     }

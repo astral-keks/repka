@@ -3,14 +3,14 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Text;
 using System.Security.Cryptography;
 
-namespace Repka.Graphs
+namespace Repka.Symbols
 {
-    public class SymbolSource
+    public class WorkspaceSyntax
     {
         private readonly string _root;
         private readonly FileInfo _file;
 
-        public SymbolSource(string root, FileInfo file)
+        public WorkspaceSyntax(string root, FileInfo file)
         {
             _root = root;
             _file = file;
@@ -24,14 +24,14 @@ namespace Repka.Graphs
 
         public string RelativePath => _file.FullName.Replace(_root, string.Empty);
 
-        public SyntaxNode SyntaxRoot => _syntaxRoot.Value;
+        public SyntaxNode Root => _syntaxRoot.Value;
         private readonly Lazy<SyntaxNode> _syntaxRoot;
         private SyntaxNode GetSyntaxRoot()
         {
-            return SyntaxTree.GetCompilationUnitRoot();
+            return Tree.GetCompilationUnitRoot();
         }
 
-        public SyntaxTree SyntaxTree => _syntaxTree.Value;
+        public SyntaxTree Tree => _syntaxTree.Value;
         private readonly Lazy<SyntaxTree> _syntaxTree;
         private SyntaxTree GetSyntaxTree()
         {
@@ -52,7 +52,6 @@ namespace Repka.Graphs
         }
 
         public byte[] Content => _content.Value;
-
         private readonly Lazy<byte[]> _content;
         private byte[] GetContent()
         {

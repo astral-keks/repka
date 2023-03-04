@@ -1,6 +1,6 @@
 ﻿using Microsoft.Build.Construction;
 
-namespace Repka.Graphs
+namespace Repka.Solutions
 {
     internal static class SolutionExtensions
     {

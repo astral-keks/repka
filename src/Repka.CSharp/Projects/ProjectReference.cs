@@ -1,6 +1,6 @@
-﻿namespace Repka.Graphs
+﻿namespace Repka.Projects
 {
-    public class ProjectReference
+    internal class ProjectReference
     {
         public ProjectReference(string relativePath, string absolutePath)
         {

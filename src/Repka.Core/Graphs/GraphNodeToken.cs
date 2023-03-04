@@ -9,5 +9,10 @@
         }
 
         public GraphKey Key { get; }
+
+        public override string ToString()
+        {
+            return $"Key={Key}";
+        }
     }
 }

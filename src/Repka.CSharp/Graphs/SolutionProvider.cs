@@ -1,4 +1,5 @@
 ﻿using Microsoft.Build.Construction;
+using Repka.Solutions;
 
 namespace Repka.Graphs
 {
@@ -13,7 +14,7 @@ namespace Repka.Graphs
                 Progress.Start($"Solutions");
                 foreach (var solutionFile in directory.EnumerateFiles("*.sln", SearchOption.AllDirectories))
                 {
-                    Progress.Report($"Solutions: {++i}");
+                    Progress.Notify($"Solutions: {++i}");
                     SolutionFile? solution = solutionFile.ToSolution();
                     if (solution is not null)
                     {

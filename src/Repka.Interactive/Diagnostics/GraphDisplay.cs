@@ -1,8 +1,8 @@
 ﻿using Microsoft.DotNet.Interactive;
 
-namespace Repka.Graphs
+namespace Repka.Diagnostics
 {
-    public class GraphDisplay : GraphProgress
+    public class GraphDisplay : Progress
     {
         private DisplayedValue? _value;
         private DateTime _lastReported;
@@ -12,9 +12,9 @@ namespace Repka.Graphs
             Display(message);
         }
 
-        public override void Report(string progress)
+        public override void Notify(string progress)
         {
-            if ((DateTime.UtcNow - _lastReported) > TimeSpan.FromSeconds(0.5))
+            if (DateTime.UtcNow - _lastReported > TimeSpan.FromSeconds(0.5))
             {
                 Display(progress);
             }

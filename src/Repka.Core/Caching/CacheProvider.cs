@@ -4,17 +4,17 @@ namespace Repka.Caching
 {
     public class CacheProvider
     {
-        public Cache GetCache(string cacheName)
+        public Cache GetCache(string store, string name)
         {
             ConcurrentDictionary<string, CacheEntry> entries = new();
-            foreach (var entry in Read(cacheName))
+            foreach (var entry in Read(store, name))
                 entries[entry.Key] = entry;
 
-            return new Cache(entries, entries => Write(cacheName, entries));
+            return new Cache(entries, entries => Write(store, name, entries));
         }
 
-        protected virtual List<CacheEntry> Read(string cacheName) => new(0);
+        protected virtual List<CacheEntry> Read(string store, string name) => new(0);
 
-        protected virtual void Write(string cacheName, IEnumerable<CacheEntry> entries) { }
+        protected virtual void Write(string store, string name, IEnumerable<CacheEntry> entries) { }
     }
 }

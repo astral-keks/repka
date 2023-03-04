@@ -18,6 +18,10 @@
         public const string UsesLibrary = nameof(UsesLibrary);
         public const string DefinesLibrary = nameof(DefinesLibrary);
 
+        public const string IsType = nameof(IsType);
+        public const string IsField = nameof(IsField);
+        public const string IsProperty = nameof(IsProperty);
+        public const string IsMethod = nameof(IsMethod);
         public const string IsSymbol = nameof(IsSymbol);
         public const string DefinesSymbol = nameof(DefinesSymbol);
         public const string UsesSymbol = nameof(UsesSymbol);

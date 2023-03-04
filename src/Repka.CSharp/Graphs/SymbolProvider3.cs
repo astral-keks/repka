@@ -8,16 +8,17 @@ using Repka.Symbols;
 using Repka.Diagnostics;
 
 using Workspace = Repka.Symbols.Workspace;
+using Microsoft.CodeAnalysis.Text;
+using Repka.Projects;
+using Microsoft.Build.Construction;
 
 namespace Repka.Graphs
 {
-    public partial class SymbolProvider : GraphProvider
+    public partial class SymbolProvider3 : GraphProvider
     {
         public List<WorkspaceReference> References { get; init; } = new();
 
         public CacheProvider CacheProvider { get; init; } = new();
-
-        public WorkspaceProvider WorkspaceProvider { get; init; } = new();
 
         public ReportProvider? ReportProvider { get; init; }
 
@@ -25,46 +26,46 @@ namespace Repka.Graphs
 
         public override IEnumerable<GraphToken> GetTokens(GraphKey key, Graph graph)
         {
-            IEnumerable<WorkspaceReference> references = WorkspaceProvider.GetWorkspaceReferences(key).Concat(References);
-            Workspace workspace = WorkspaceProvider.CreateWorkspace(key, references);
-            if (!workspace.IsEmpty)
+            DirectoryInfo root = new(key);
+
+            AdhocWorkspace workspace = new();
+            foreach (var project in graph.Projects())
             {
-                if (ReportProvider is not null)
+
+            }
+            foreach (var projectFile in root.EnumerateFiles("*.csproj", SearchOption.AllDirectories))
+            {
+                ProjectRootElement projectElement = projectFile.ToProject();
+
+                string projectName = Path.GetFileNameWithoutExtension(projectFile.Name);
+                ProjectInfo.Create()
+                Project project = workspace.AddProject(projectName, LanguageNames.CSharp);
+                List<Document> documents = new();
+                project.AddMetadataReferences(new MetadataReference[0]);
+                foreach (var documentFile in projectFile.Directory?.EnumerateFiles("*.cs", SearchOption.AllDirectories) ?? Enumerable.Empty<FileInfo>())
                 {
-                    using (ReportWriter referencesWriter = ReportProvider.GetWriter(key, "resolved-references"))
-                        referencesWriter.Write(references.GetResolvedReferencesReport());
+                    string documentName = documentFile.Name;
+                    using Stream documentStream = documentFile.OpenRead();
+                    SourceText documentText = SourceText.From(documentStream);
+                    workspace.AddDocument(project.Id, documentName, documentText);
+                }
+            }
 
-                    using (ReportWriter referencesWriter = ReportProvider.GetWriter(key, "unresolved-references"))
-                        referencesWriter.Write(references.GetUnresolvedReferencesReport());
 
-                    using (ReportWriter diagrnosticsWriter = ReportProvider.GetWriter(key, "diagnostics"))
+            foreach (var project in workspace.CurrentSolution.Projects)
+            {
+                Compilation? compilation = project.GetCompilationAsync().GetAwaiter().GetResult();
+                foreach (var document in project.Documents)
+                {
+                    SemanticModel? semantic = document.GetSemanticModelAsync().GetAwaiter().GetResult();
+                    foreach (var diagnostic in semantic?.GetDiagnostics() ?? Enumerable.Empty<Diagnostic>())
                     {
-                        workspace.Semantics.WithProgress(Progress, "Diagnostics")
-                            .AsParallel().WithDegreeOfParallelism(Threads)
-                            .Select(semantic => semantic.GetDiagnositcReport())
-                            .ForAll(report => diagrnosticsWriter.Write(report));
+                        Console.WriteLine(diagnostic);
                     }
                 }
-
-                HashSet<GraphKey> declarationKeys = new();
-                using SymbolCache declarationCache = new(CacheProvider.GetCache(key, "declarations"));
-                IEnumerable<GraphToken> declarationTokens = workspace.Semantics.WithProgress(Progress, "Declarations sources")
-                    .AsParallel().WithDegreeOfParallelism(Threads)
-                    .SelectMany(semantic => declarationCache.GetOrAdd(semantic.Syntax, () => GetDeclarationTokens(semantic).ToList()));
-                foreach (var declarationToken in declarationTokens)
-                {
-                    if (declarationToken is GraphNodeToken nodeToken)
-                        declarationKeys.Add(nodeToken.Key);
-                    yield return declarationToken;
-                }
-
-                using SymbolCache usageCache = new(CacheProvider.GetCache(key, "usages"));
-                IEnumerable<GraphToken> usageTokens = workspace.Semantics.WithProgress(Progress, "Usages sources")
-                    .AsParallel().WithDegreeOfParallelism(Threads)
-                    .SelectMany(semantic => usageCache.GetOrAdd(semantic.Syntax, () => GetUsageTokens(semantic, declarationKeys).ToList()));
-                foreach (var usageToken in usageTokens)
-                    yield return usageToken;
             }
+
+            yield break;
         }
 
         private IEnumerable<GraphToken> GetDeclarationTokens(WorkspaceSemantic semantic)
