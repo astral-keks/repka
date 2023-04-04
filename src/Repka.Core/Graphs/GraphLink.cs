@@ -10,7 +10,7 @@ namespace Repka.Graphs
         {
         }
 
-        internal GraphLink(GraphLinkToken token, Graph graph)
+        protected internal GraphLink(GraphLinkToken token, Graph graph)
             : base(token, graph)
         {
             _token = token;
@@ -20,14 +20,14 @@ namespace Repka.Graphs
 
         public GraphNode? Source()
         {
-            return Graph.Node(_token.SourceKey);
+            return Graph.Node(SourceKey);
         }
 
         public GraphKey TargetKey => _token.TargetKey;
 
         public GraphNode? Target()
         {
-            return Graph.Node(_token.TargetKey);
+            return Graph.Node(TargetKey);
         }
     }
 }

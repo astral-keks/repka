@@ -1,9 +1,13 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Security.Cryptography;
+using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Repka.Graphs
 {
     public class GraphKey : IComparable<GraphKey>
     {
+        public static readonly GraphKey Null = new("null");
+
         public static GraphKey Compose(params GraphKey[] keys)
         {
             return Compose(keys.Select(key => key.Resource).ToArray());
@@ -78,6 +82,16 @@ namespace Repka.Graphs
         public override int GetHashCode()
         {
             return HashCode.Combine(Resource.ToLower());
+        }
+
+        public Guid GetGuid()
+        {
+            byte[] data = Encoding.UTF8.GetBytes(Resource.ToLower());
+
+            using var md5 = MD5.Create();
+            byte[] hash = md5.ComputeHash(data);
+
+            return new Guid(hash);
         }
 
         public override string ToString()

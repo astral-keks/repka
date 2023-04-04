@@ -1,9 +1,9 @@
-﻿namespace Repka.Reports
+﻿namespace Repka.Diagnostics
 {
     public class Report
     {
-        public string Title { get; set; } = "";
+        public string Text { get; set; } = "";
 
-        public List<string> Records { get; set; } = new(0);
+        public IEnumerable<Report> Records { get; set; } = Enumerable.Empty<Report>();
     }
 }

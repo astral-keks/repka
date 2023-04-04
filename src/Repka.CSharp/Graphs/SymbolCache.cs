@@ -1,6 +1,6 @@
-﻿using Repka.Caching;
+﻿using Microsoft.CodeAnalysis;
+using Repka.Caching;
 using Repka.Graphs;
-using Repka.Symbols;
 
 namespace Repka.Graphs
 {
@@ -18,16 +18,16 @@ namespace Repka.Graphs
             _cache?.Dispose();
         }
 
-        public ICollection<GraphToken> GetOrAdd(WorkspaceSyntax source, Func<ICollection<GraphToken>> factory)
+        public ICollection<GraphToken> GetOrAdd(Document source, Func<ICollection<GraphToken>> factory)
         {
             Lazy<ICollection<GraphToken>> tokens = new(factory);
 
-            CacheEntry entry = new(source.RelativePath,
+            CacheEntry entry = new(source.FilePath ?? "???",
                 () => WriteTokens(tokens.Value),
                 new()
                 {
-                    new CacheProperty("date", source.LastWriteTimeUtc.ToString("s")),
-                    new CacheProperty("checsum", () => source.CheckSum)
+                    //new CacheProperty("date", source.LastWriteTimeUtc.ToString("s")),
+                    //new CacheProperty("checsum", () => source.CheckSum)
                 });
 
             CacheEntry? cached = _cache?.GetOrAdd(entry);

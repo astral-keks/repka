@@ -1,4 +1,4 @@
-﻿namespace Repka.Reports
+﻿namespace Repka.Diagnostics
 {
     public class ReportWriter : IDisposable
     {

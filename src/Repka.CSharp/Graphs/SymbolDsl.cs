@@ -1,54 +1,52 @@
-﻿namespace Repka.Graphs
+﻿using static Repka.Graphs.DocumentDsl;
+
+namespace Repka.Graphs
 {
     public static class SymbolDsl
     {
+        public static SymbolNode? Symbol(this Graph graph, GraphKey key) => graph.Node(key).AsSymbol();
+
         public static IEnumerable<SymbolNode> Symbols(this Graph graph) => graph.Nodes()
-            .Select(SymbolNode.Of)
+            .Select(node => node.AsSymbol())
             .OfType<SymbolNode>();
 
-        public static SymbolNode? Symbol(this GraphNode node) => SymbolNode.Of(node);
+        public static SymbolNode? AsSymbol(this GraphNode? node) => 
+            node?.Labels.Contains(SymbolLabels.IsSymbol) == true ? new(node) : default;
 
         public class SymbolNode : GraphNode
         {
-            public static SymbolNode? Of(GraphNode? node) =>
-                node?.Labels.Contains(CSharpLabels.IsSymbol) == true ? new(node) : default;
-
-            public SymbolNode(GraphNode node) : base(node) {}
+            public SymbolNode(GraphNode node) : base(node) { }
 
             public GraphKey Name => Key;
 
-            public bool IsType => Labels.Contains(CSharpLabels.IsType);
+            public bool IsType => Labels.Contains(SymbolLabels.IsType);
 
-            public bool IsField => Labels.Contains(CSharpLabels.IsField);
+            public bool IsField => Labels.Contains(SymbolLabels.IsField);
 
-            public bool IsProperty => Labels.Contains(CSharpLabels.IsProperty);
+            public bool IsProperty => Labels.Contains(SymbolLabels.IsProperty);
 
-            public bool IsMethod => Labels.Contains(CSharpLabels.IsMethod);
+            public bool IsMethod => Labels.Contains(SymbolLabels.IsMethod);
 
-            public IEnumerable<SymbolFile> Origins => Inputs(CSharpLabels.DefinesSymbol)
-                .Select(input => new SymbolFile(input.SourceKey, input.Graph));
+            public DocumentNode Definition => Definitions.Single();
+ 
+            public IEnumerable<DocumentNode> Definitions => Inputs(SymbolLabels.DefinesSymbol)
+                .Select(link => link.Source().AsDocument()).OfType<DocumentNode>();
 
-            public IEnumerable<SymbolFile> Referers => Inputs(CSharpLabels.UsesSymbol)
-                .Select(input => new SymbolFile(input.SourceKey, input.Graph));
+            public IEnumerable<DocumentNode> References => Inputs(SymbolLabels.UsesSymbol)
+                .Select(link => link.Source().AsDocument()).OfType<DocumentNode>();
         }
 
-        public class SymbolFile
+        public static class SymbolLabels
         {
-            private readonly GraphKey _key;
-            private readonly Graph _graph;
+            public const string IsSymbol = nameof(IsSymbol);
+            public const string IsType = nameof(IsType);
+            public const string IsField = nameof(IsField);
+            public const string IsProperty = nameof(IsProperty);
+            public const string IsMethod = nameof(IsMethod);
 
-            public SymbolFile(GraphKey key, Graph graph)
-            {
-                _key = key;
-                _graph = graph;
-            }
+            public const string DefinesSymbol = nameof(DefinesSymbol);
 
-            public GraphKey Name => _key;
-
-            public IEnumerable<SymbolNode> Symbols() => _graph.Links(_key)
-                .Select(link => link.Target())
-                .Select(SymbolNode.Of)
-                .OfType<SymbolNode>();
+            public const string UsesSymbol = nameof(UsesSymbol);
         }
     }
 }

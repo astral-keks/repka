@@ -1,61 +1,133 @@
 ﻿using Microsoft.Build.Construction;
+using Microsoft.CodeAnalysis;
+using Repka.Assemblies;
+using Repka.Collections;
+using Repka.Diagnostics;
+using Repka.Frameworks;
+using Repka.Packaging;
 using Repka.Projects;
+using static Repka.Graphs.AssemblyDsl;
 using static Repka.Graphs.PackageDsl;
+using static Repka.Graphs.ProjectDsl;
 
 namespace Repka.Graphs
 {
     public class ProjectProvider : GraphProvider
     {
+        public FrameworkProvider FrameworkProvider { get; init; } = new();
+
         public override IEnumerable<GraphToken> GetTokens(GraphKey key, Graph graph)
         {
             DirectoryInfo directory = new(key);
             if (directory.Exists)
             {
-                int i = 0;
-                Progress.Start($"Projects: ");
-                foreach (var projectFile in directory.EnumerateFiles("*.csproj", SearchOption.AllDirectories))
+                FrameworkDirectory frameworkDirectory = FrameworkProvider.GetFrameworkDirectory();
+
+                List<FileInfo> projectFiles = directory.EnumerateFiles("*.csproj", SearchOption.AllDirectories).ToList();
+                ProgressPercentage projectProgress = Progress.Percent("Collecting projects", projectFiles.Count);
+                foreach (var token in projectFiles.Peek(projectProgress.Increment).SelectMany(projectFile => GetProjectTokens(projectFile, frameworkDirectory)))
+                    yield return token;
+                projectProgress.Complete();
+
+                List<ProjectNode> projectNodes = graph.Projects().ToList();
+                ProgressPercentage dependencyProgress = Progress.Percent("Collecting project dependencies", projectNodes.Count);
+                foreach (var token in GetDependencyTokens(projectNodes.Peek(dependencyProgress.Increment)))
+                    yield return token;
+                dependencyProgress.Complete();
+            }
+        }
+
+        private IEnumerable<GraphToken> GetProjectTokens(FileInfo projectFile, FrameworkDirectory frameworkDirectory)
+        {
+            ProjectRootElement projectElement = projectFile.ToProject();
+
+            GraphKey projectKey = new(projectFile.FullName);
+            GraphNodeToken projectNode = new(projectKey, ProjectLabels.Project);
+            if (projectElement.IsExecutableOutputType())
+                projectNode.Labels.Add(ProjectLabels.ExecutableProject);
+            if (projectElement.IsLibraryOutputType())
+                projectNode.Labels.Add(ProjectLabels.LibraryProject);
+            if (projectElement.IsPackageable())
+                projectNode.Labels.Add(ProjectLabels.PackageProject);
+            yield return projectNode;
+
+            string? packageId = projectElement.GetPackageId();
+            if (!string.IsNullOrWhiteSpace(packageId))
+            {
+                GraphKey packageKey = new(packageId);
+                yield return new GraphLinkToken(projectNode.Key, packageKey, ProjectLabels.PackageDefinition);
+            }
+
+            foreach (var framework in projectElement.GetTargetFrameworks())
+            {
+                GraphKey frameworkKey = new(framework);
+                yield return new GraphLinkToken(projectKey, frameworkKey, ProjectLabels.TargetFramework);
+            }
+        
+            foreach (var packageReference in projectElement.GetPackageReferences())
+            {
+                PackageKey packageReferenceKey = new(packageReference.Id, packageReference.Version);
+                yield return new GraphLinkToken(projectKey, packageReferenceKey, ProjectLabels.PackageReference);
+            }
+
+            foreach (var projectReference in projectElement.GetProjectReferences())
+            {
+                GraphKey projectReferenceKey = new(projectReference.AbsolutePath);
+                yield return new GraphLinkToken(projectKey, projectReferenceKey, ProjectLabels.ProjectReference);
+            }
+
+            foreach (var libraryReference in projectElement.GetLibraryReferences())
+            {
+                GraphKey libraryReferenceKey = new(libraryReference.AbsolutePath);
+                yield return new GraphNodeToken(libraryReferenceKey, AssemblyLabels.Assembly);
+                yield return new GraphLinkToken(projectKey, libraryReferenceKey, ProjectLabels.LibraryReference);
+            }
+
+            foreach (var frameworkReference in projectElement.GetFrameworkReferences())
+            {
+                GraphKey frameworkReferenceKey = new(frameworkReference.Name);
+                yield return new GraphLinkToken(projectKey, frameworkReferenceKey, ProjectLabels.FrameworkReference);
+
+                IEnumerable<AssemblyFile> frameworkAssemblies = frameworkDirectory.Assemblies
+                    .Append(frameworkDirectory.ResolveAssembly(frameworkReference.Name))
+                    .OfType<AssemblyFile>();
+                foreach (AssemblyFile frameworkAssembly in frameworkAssemblies)
                 {
-                    Progress.Notify($"Projects: {++i}");
-                    ProjectRootElement project = projectFile.ToProject();
-
-                    GraphKey projectKey = new(projectFile.FullName);
-                    GraphNodeToken projectNode = new(projectKey, CSharpLabels.IsProject);
-                    if (project.IsExeOutputType())
-                        projectNode.Labels.Add(CSharpLabels.DefinesExecutable);
-                    if (project.IsDllOutputType())
-                        projectNode.Labels.Add(CSharpLabels.DefinesLibrary);
-                    if (project.IsPackageable())
-                        projectNode.Labels.Add(CSharpLabels.DefinesPackage);
-                    yield return projectNode;
-
-                    foreach (string dllPath in project.GetDllAssemblyPaths())
-                    {
-                        GraphKey dllKey = new(dllPath);
-                        yield return new GraphLinkToken(projectKey, dllKey, CSharpLabels.DefinesLibrary);
-                    }
-
-                    foreach (var reference in project.GetPackageReferences())
-                    {
-                        GraphKey packageIdReferenceKey = new PackageKey(reference.Id);
-                        yield return new GraphLinkToken(projectKey, packageIdReferenceKey, CSharpLabels.UsesPackageId);
-
-                        GraphKey packageVersionReferenceKey = new PackageKey(reference.Id, reference.Version);
-                        yield return new GraphLinkToken(projectKey, packageVersionReferenceKey, CSharpLabels.UsesPackageVersion);
-                    }
-
-                    foreach (var reference in project.GetProjectReferences())
-                    {
-                        GraphKey projectReferenceKey = new(reference.AbsolutePath);
-                        yield return new GraphLinkToken(projectKey, projectReferenceKey, CSharpLabels.UsesProject);
-                    }
-
-                    foreach (var reference in project.GetDllReferences())
-                    {
-                        GraphKey dllReferenceKey = new(reference.AbsolutePath);
-                        yield return new GraphLinkToken(projectKey, dllReferenceKey, CSharpLabels.UsesLibrary);
-                    }
+                    GraphKey frameworkAssemblyKey = new(frameworkAssembly.Path);
+                    yield return new GraphNodeToken(frameworkAssemblyKey, AssemblyLabels.Assembly);
+                    yield return new GraphLinkToken(projectKey, frameworkAssemblyKey, ProjectLabels.FrameworkDependency);
                 }
-                Progress.Finish($"Projects: {i}");
+            }
+
+            foreach (var documentReference in projectElement.GetDocumentReferences())
+            {
+                GraphKey documentReferenceKey = new(documentReference.AbsolutePath);
+                yield return new GraphLinkToken(projectKey, documentReferenceKey, ProjectLabels.DocumentReference);
+            }
+        }
+
+        private IEnumerable<GraphToken> GetDependencyTokens(IEnumerable<ProjectNode> projectNodes)
+        {
+            Dictionary<NuGetIdentifier, ProjectNode> packagableNodes = projectNodes
+                .Where(projectNode => projectNode.PackageId is not null)
+                .ToDictionary(projectNode => projectNode.PackageId!);
+
+            foreach (var projectNode in projectNodes)
+            {
+                foreach (var dependencyNode in GetProjectDependencies(projectNode, packagableNodes))
+                    yield return new GraphLinkToken(projectNode.Key, dependencyNode.Key, ProjectLabels.ProjectDependency);
+            }
+        }
+
+        private IEnumerable<ProjectNode> GetProjectDependencies(ProjectNode projectNode, Dictionary<NuGetIdentifier, ProjectNode> packagableNodes)
+        {
+            foreach (var referenceNode in projectNode.ProjectReferences().ToList())
+                yield return referenceNode;
+
+            foreach (var referenceDescriptor in projectNode.PackageReferences.ToList())
+            {
+                if (packagableNodes.TryGetValue(referenceDescriptor.Id, out ProjectNode? packagableNode))
+                    yield return packagableNode;
             }
         }
     }

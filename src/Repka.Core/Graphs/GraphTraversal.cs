@@ -1,48 +1,84 @@
-﻿namespace Repka.Graphs
+﻿using Repka.Optionals;
+
+namespace Repka.Graphs
 {
     public static class GraphTraversal
     {
-        public static IEnumerable<(GraphKey Key, int Level)> SourcesByLevel(this Graph graph, IEnumerable<GraphKey> keys)
+        public static IEnumerable<TElement> Traverse<TElement>(this IEnumerable<TElement> elements, Func<TElement, IEnumerable<TElement>> expand,
+            GraphTraversal<TElement>? traversal = default)
+            where TElement : notnull
         {
-            return keys.SelectMany(key => graph.Sources(key, level: 0));
+            traversal ??= new();
+            return elements.SelectMany(element => element.Traverse(expand, traversal));
         }
 
-        private static IEnumerable<(GraphKey Key, int Level)> Sources(this Graph graph, GraphKey key, int level)
+        public static ICollection<TElement> Traverse<TElement>(this TElement element, Func<TElement, IEnumerable<TElement>> expand,
+            GraphTraversal<TElement>? traversal = default)
+            where TElement : notnull
         {
-            yield return (key, level);
-            foreach (var link in graph.Links(key).Where(link => link.TargetKey == key))
+            traversal ??= new();
+            return traversal.Visit(element, () => expand(element).Traverse(expand, traversal).Prepend(element).ToList());
+        }
+
+    }
+
+    public class GraphTraversal<TElement> : GraphTraversal<TElement, TElement>
+        where TElement : notnull
+    {
+    }
+
+    public class GraphTraversal<TSource, TResult>
+        where TSource : notnull
+    {
+        private readonly Dictionary<TSource, ICollection<TResult>?> _history = new();
+        private readonly HashSet<TSource> _visiting = new();
+
+        public GraphTraversalStrategy Strategy { get; init; } = GraphTraversalStrategy.RecallHistory;
+
+        public TResult? Visit(TSource element, Func<TResult> factory) => 
+            Visit(element, () => new[] { factory() }).SingleOrDefault();
+
+        public ICollection<TResult> Visit(TSource element, Action<ICollection<TResult>> factory) =>
+            Visit(element, () =>
             {
-                GraphKey sourceKey = link.SourceKey;
-                foreach (var referer in graph.Sources(sourceKey, level + 1))
+                HashSet<TResult> results = new();
+                factory(results);
+                return results;
+            });
+
+        public ICollection<TResult> Visit(TSource element, Func<ICollection<TResult>> factory)
+        {
+            ICollection<TResult>? results = default;
+
+            if (_visiting.Add(element))
+            {
+                try
                 {
-                    yield return referer;
+                    results = !_history.ContainsKey(element)
+                        ? _history[element] = factory()
+                        : Strategy switch
+                        {
+                            GraphTraversalStrategy.BypassHistory => Bypass(element),
+                            GraphTraversalStrategy.RecallHistory or _ => Recall(element),
+                        };
+                }
+                finally
+                {
+                    _visiting.Remove(element);
                 }
             }
+
+            return results ?? new List<TResult>(0);
         }
 
-        public static IEnumerable<GraphNode> TraverseBreadth(this GraphNode node, long maxDepth = long.MaxValue)
-        {
-            return node.TraverseBreadth(maxDepth, new HashSet<GraphKey>());
-        }
+        private ICollection<TResult>? Recall(TSource element) => _history[element];
 
-        private static IEnumerable<GraphNode> TraverseBreadth(this GraphNode node, long maxDepth, HashSet<GraphKey> keys)
-        {
-            if (keys.Add(node.Key))
-                yield return node;
+        private ICollection<TResult>? Bypass(TSource _) => default;
+    }
 
-            foreach (var subnode in node.Neighbors())
-            {
-                if (keys.Add(subnode.Key))
-                    yield return subnode;
-            }
-
-            if (--maxDepth != 0)
-            {
-                foreach (var subnode in node.Neighbors().SelectMany(to => to.TraverseBreadth(maxDepth, keys)))
-                {
-                    yield return subnode;
-                }
-            }
-        }
+    public enum GraphTraversalStrategy
+    {
+        RecallHistory,
+        BypassHistory
     }
 }

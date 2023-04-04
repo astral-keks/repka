@@ -1,94 +1,79 @@
-﻿using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Repka.Caching;
-using Repka.Reports;
-using System.Collections.Immutable;
-using Repka.Symbols;
+using Repka.Collections;
 using Repka.Diagnostics;
-
-using Workspace = Repka.Symbols.Workspace;
+using Repka.Workspaces;
+using System.Collections.Immutable;
+using static Repka.Graphs.ProjectDsl;
+using static Repka.Graphs.SymbolDsl;
 
 namespace Repka.Graphs
 {
     public partial class SymbolProvider : GraphProvider
     {
-        public List<WorkspaceReference> References { get; init; } = new();
-
-        public CacheProvider CacheProvider { get; init; } = new();
-
-        public WorkspaceProvider WorkspaceProvider { get; init; } = new();
-
         public ReportProvider? ReportProvider { get; init; }
-
-        public int Threads { get; init; } = 1;
 
         public override IEnumerable<GraphToken> GetTokens(GraphKey key, Graph graph)
         {
-            IEnumerable<WorkspaceReference> references = WorkspaceProvider.GetWorkspaceReferences(key).Concat(References);
-            Workspace workspace = WorkspaceProvider.CreateWorkspace(key, references);
-            if (!workspace.IsEmpty)
-            {
-                if (ReportProvider is not null)
-                {
-                    using (ReportWriter referencesWriter = ReportProvider.GetWriter(key, "resolved-references"))
-                        referencesWriter.Write(references.GetResolvedReferencesReport());
+            WorkspaceBuilder workspaceBuilder = new();
 
-                    using (ReportWriter referencesWriter = ReportProvider.GetWriter(key, "unresolved-references"))
-                        referencesWriter.Write(references.GetUnresolvedReferencesReport());
+            List<ProjectNode> projectNodes = graph.Projects().ToList();
+            ProgressPercentage projectProgress = Progress.Percent("Creating workspace", projectNodes.Count);
+            projectNodes.AsParallel().Peek(projectProgress.Increment).ForAll(projectNode => workspaceBuilder.AddProject(projectNode));
+            projectProgress.Complete();
 
-                    using (ReportWriter diagrnosticsWriter = ReportProvider.GetWriter(key, "diagnostics"))
-                    {
-                        workspace.Semantics.WithProgress(Progress, "Diagnostics")
-                            .AsParallel().WithDegreeOfParallelism(Threads)
-                            .Select(semantic => semantic.GetDiagnositcReport())
-                            .ForAll(report => diagrnosticsWriter.Write(report));
-                    }
-                }
+            AdhocWorkspace workspace = workspaceBuilder.Workspace;
+            ReportProvider.Report(workspace, key, "Web.Common", "Appliance.AccessControl");
 
-                HashSet<GraphKey> declarationKeys = new();
-                using SymbolCache declarationCache = new(CacheProvider.GetCache(key, "declarations"));
-                IEnumerable<GraphToken> declarationTokens = workspace.Semantics.WithProgress(Progress, "Declarations sources")
-                    .AsParallel().WithDegreeOfParallelism(Threads)
-                    .SelectMany(semantic => declarationCache.GetOrAdd(semantic.Syntax, () => GetDeclarationTokens(semantic).ToList()));
-                foreach (var declarationToken in declarationTokens)
-                {
-                    if (declarationToken is GraphNodeToken nodeToken)
-                        declarationKeys.Add(nodeToken.Key);
-                    yield return declarationToken;
-                }
-
-                using SymbolCache usageCache = new(CacheProvider.GetCache(key, "usages"));
-                IEnumerable<GraphToken> usageTokens = workspace.Semantics.WithProgress(Progress, "Usages sources")
-                    .AsParallel().WithDegreeOfParallelism(Threads)
-                    .SelectMany(semantic => usageCache.GetOrAdd(semantic.Syntax, () => GetUsageTokens(semantic, declarationKeys).ToList()));
-                foreach (var usageToken in usageTokens)
-                    yield return usageToken;
-            }
+            List<Document> documents = workspace.CurrentSolution.Projects.SelectMany(project => project.Documents).ToList();
+            ProgressPercentage symbolProgress = Progress.Percent("Collecting symbols", documents.Count);
+            foreach (var token in documents.AsParallel().Peek(symbolProgress.Increment).SelectMany(GetDocumentTokens))
+                yield return token;
+            symbolProgress.Complete();
         }
 
-        private IEnumerable<GraphToken> GetDeclarationTokens(WorkspaceSemantic semantic)
+        private IEnumerable<GraphToken> GetDocumentTokens(Document document)
         {
-            foreach (var descendant in semantic.Syntax.Root.DescendantNodes())
+            FileInfo file = document.GetFile();
+            SyntaxNode syntax = document.GetSyntax();
+            SemanticModel semantic = document.GetSemantic();
+
+            HashSet<GraphKey> keys = new();
+            foreach (var token in GetDeclarationTokens(syntax, semantic, file))
+            {
+                yield return token;
+                if (token is GraphNodeToken nodeToken)
+                    keys.Add(nodeToken.Key);
+            }
+            foreach (var token in GetUsageTokens(syntax, semantic, file, keys))
+                yield return token;
+        }
+
+        private IEnumerable<GraphToken> GetDeclarationTokens(SyntaxNode syntax, SemanticModel semantic, FileInfo file)
+        {
+            foreach (var descendant in syntax.DescendantNodes(syntax => 
+                !(syntax is BlockSyntax && syntax.Parent is MethodDeclarationSyntax) &&
+                !(syntax is AccessorListSyntax && syntax.Parent is PropertyDeclarationSyntax)))
             {
                 if (descendant is BaseTypeDeclarationSyntax typeDeclarationSyntax)
                 {
-                    foreach (var token in GetTypeDeclarationTokens(typeDeclarationSyntax, semantic.Model, semantic.Syntax.File))
+                    foreach (var token in GetTypeDeclarationTokens(typeDeclarationSyntax, semantic, file))
                         yield return token;
                 }
                 else if (descendant is FieldDeclarationSyntax fieldDeclarationSyntax)
                 {
-                    foreach (var token in GetFieldDeclarationTokens(fieldDeclarationSyntax, semantic.Model, semantic.Syntax.File))
+                    foreach (var token in GetFieldDeclarationTokens(fieldDeclarationSyntax, semantic, file))
                         yield return token;
                 }
                 else if (descendant is PropertyDeclarationSyntax propertyDeclarationSyntax)
                 {
-                    foreach (var token in GetPropertyDeclarationTokens(propertyDeclarationSyntax, semantic.Model, semantic.Syntax.File))
+                    foreach (var token in GetPropertyDeclarationTokens(propertyDeclarationSyntax, semantic, file))
                         yield return token;
                 }
                 else if (descendant is MethodDeclarationSyntax methodDeclarationSyntax)
                 {
-                    foreach (var token in GetMethodDeclarationTokens(methodDeclarationSyntax, semantic.Model, semantic.Syntax.File))
+                    foreach (var token in GetMethodDeclarationTokens(methodDeclarationSyntax, semantic, file))
                         yield return token;
                 }
             }
@@ -96,8 +81,8 @@ namespace Repka.Graphs
 
         private IEnumerable<GraphToken> GetTypeDeclarationTokens(BaseTypeDeclarationSyntax typeSyntax, SemanticModel semantic, FileInfo file)
         {
-            INamedTypeSymbol? typeSymbol = semantic.GetDeclaredSymbol(typeSyntax);
-            return CreateSymbolTokens(typeSymbol, CSharpLabels.IsType, file);
+            ISymbol? typeSymbol = semantic.GetDeclaredSymbol(typeSyntax);
+            return CreateSymbolTokens(typeSymbol, SymbolLabels.IsType, file);
         }
 
         private IEnumerable<GraphToken> GetFieldDeclarationTokens(FieldDeclarationSyntax fieldSyntax, SemanticModel semantic, FileInfo file)
@@ -105,7 +90,7 @@ namespace Repka.Graphs
             foreach (var variable in fieldSyntax.Declaration.Variables)
             {
                 ISymbol? fieldSymbol = semantic.GetDeclaredSymbol(variable);
-                foreach (var token in CreateSymbolTokens(fieldSymbol, CSharpLabels.IsField, file))
+                foreach (var token in CreateSymbolTokens(fieldSymbol, SymbolLabels.IsField, file))
                     yield return token;
             }
         }
@@ -113,13 +98,13 @@ namespace Repka.Graphs
         private IEnumerable<GraphToken> GetPropertyDeclarationTokens(PropertyDeclarationSyntax propertySyntax, SemanticModel semantic, FileInfo file)
         {
             ISymbol? propertySymbol = semantic.GetDeclaredSymbol(propertySyntax);
-            return CreateSymbolTokens(propertySymbol, CSharpLabels.IsProperty, file);
+            return CreateSymbolTokens(propertySymbol, SymbolLabels.IsProperty, file);
         }
 
         private IEnumerable<GraphToken> GetMethodDeclarationTokens(MethodDeclarationSyntax methodSyntax, SemanticModel semantic, FileInfo file)
         {
             ISymbol? methodSymbol = semantic.GetDeclaredSymbol(methodSyntax);
-            return CreateSymbolTokens(methodSymbol, CSharpLabels.IsMethod, file);
+            return CreateSymbolTokens(methodSymbol, SymbolLabels.IsMethod, file);
         }
 
         private IEnumerable<GraphToken> CreateSymbolTokens(ISymbol? symbol, GraphLabel label, FileInfo file)
@@ -127,28 +112,28 @@ namespace Repka.Graphs
             if (symbol is not null)
             {
                 GraphKey symbolKey = symbol.ToDisplayString(SymbolFormat.Default);
-                yield return new GraphNodeToken(symbolKey, CSharpLabels.IsSymbol, label);
+                yield return new GraphNodeToken(symbolKey, SymbolLabels.IsSymbol, label);
 
                 GraphKey fileKey = file.FullName;
-                yield return new GraphLinkToken(fileKey, symbolKey, CSharpLabels.DefinesSymbol);
+                yield return new GraphLinkToken(fileKey, symbolKey, SymbolLabels.DefinesSymbol);
             }
         }
 
 
-        private IEnumerable<GraphToken> GetUsageTokens(WorkspaceSemantic semantic, ISet<GraphKey> scope)
+        private IEnumerable<GraphToken> GetUsageTokens(SyntaxNode syntax, SemanticModel semantic, FileInfo file, ISet<GraphKey> scope)
         {
-            foreach (var linkToken in GetUsageTokens(semantic))
+            foreach (var linkToken in GetUsageTokens(syntax, semantic, file))
             {
                 if (scope.Contains(linkToken.SourceKey) || scope.Contains(linkToken.TargetKey))
                     yield return linkToken;
             }
         }
 
-        private IEnumerable<GraphLinkToken> GetUsageTokens(WorkspaceSemantic semantic)
+        private IEnumerable<GraphLinkToken> GetUsageTokens(SyntaxNode syntax, SemanticModel semantic, FileInfo file)
         {
-            foreach (var descendant in semantic.Syntax.Root.DescendantNodes().OfType<TypeSyntax>())
+            foreach (var descendant in syntax.DescendantNodes().OfType<TypeSyntax>())
             {
-                SymbolInfo symbolInfo = semantic.Model.GetSymbolInfo(descendant);
+                SymbolInfo symbolInfo = semantic.GetSymbolInfo(descendant);
                 ImmutableArray<ISymbol> symbols = symbolInfo.CandidateSymbols;
                 if (symbolInfo.Symbol is not null)
                     symbols = symbols.Add(symbolInfo.Symbol);
@@ -156,22 +141,22 @@ namespace Repka.Graphs
                 {
                     if (symbol is INamedTypeSymbol typeSymbol)
                     {
-                        foreach (var token in GetTypeUsageTokens(typeSymbol, semantic.Syntax.File))
+                        foreach (var token in GetTypeUsageTokens(typeSymbol, file))
                             yield return token;
                     }
                     else if (symbol is IFieldSymbol fieldSymbol)
                     {
-                        foreach (var token in GetMemberUsageTokens(fieldSymbol, semantic.Syntax.File))
+                        foreach (var token in GetMemberUsageTokens(fieldSymbol, file))
                             yield return token;
                     }
                     else if (symbol is IPropertySymbol propertySymbol)
                     {
-                        foreach (var token in GetMemberUsageTokens(propertySymbol, semantic.Syntax.File))
+                        foreach (var token in GetMemberUsageTokens(propertySymbol, file))
                             yield return token;
                     }
                     else if (symbol is IMethodSymbol methodSymbol)
                     {
-                        foreach (var token in GetMemberUsageTokens(methodSymbol, semantic.Syntax.File))
+                        foreach (var token in GetMemberUsageTokens(methodSymbol, file))
                             yield return token;
                     }
                 }
@@ -187,7 +172,7 @@ namespace Repka.Graphs
             {
                 GraphKey fileKey = file.FullName;
                 GraphKey typeKey = typeSymbol.ToDisplayString(SymbolFormat.Default);
-                yield return new GraphLinkToken(fileKey, typeKey, CSharpLabels.UsesSymbol);
+                yield return new GraphLinkToken(fileKey, typeKey, SymbolLabels.UsesSymbol);
             }
         }
 
@@ -198,7 +183,7 @@ namespace Repka.Graphs
 
             GraphKey fileKey = file.FullName;
             GraphKey memberKey = memberSymbol.ToDisplayString(SymbolFormat.Default);
-            yield return new GraphLinkToken(fileKey, memberKey, CSharpLabels.UsesSymbol);
+            yield return new GraphLinkToken(fileKey, memberKey, SymbolLabels.UsesSymbol);
 
             foreach (var token in GetTypeUsageTokens(memberSymbol.ContainingType, file))
                 yield return token;

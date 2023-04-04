@@ -1,43 +1,123 @@
-﻿using Microsoft.Build.Construction;
-using Repka.Projects;
+﻿using NuGet.Packaging.Core;
+using Repka.Assemblies;
+using Repka.Collections;
+using Repka.Diagnostics;
+using Repka.Frameworks;
+using Repka.Packaging;
+using static Repka.Graphs.AssemblyDsl;
 using static Repka.Graphs.PackageDsl;
+using static Repka.Graphs.ProjectDsl;
 
 namespace Repka.Graphs
 {
     public class PackageProvider : GraphProvider
     {
+        public NuGetProvider NuGetProvider { get; init; } = new();
+        public FrameworkProvider FrameworkProvider { get; init; } = new();
+
         public override IEnumerable<GraphToken> GetTokens(GraphKey key, Graph graph)
         {
             DirectoryInfo directory = new(key);
             if (directory.Exists)
             {
-                int i = 0;
-                Progress.Start($"Packages: ");
-                foreach (var projectFile in directory.EnumerateFiles("*.csproj", SearchOption.AllDirectories))
+                NuGetManager packageManager = NuGetProvider.GetManager(directory.FullName);
+                FrameworkDirectory frameworkDirectory = FrameworkProvider.GetFrameworkDirectory();
+
+                List<ProjectNode> projectNodes = graph.Projects().ToList();
+                ProgressPercentage packageProgress = Progress.Percent("Resolving packages", projectNodes.Count);
+                foreach (var token in GetPackageTokens(projectNodes.Peek(packageProgress.Increment), packageManager, frameworkDirectory))
+                    yield return token;
+                packageProgress.Complete();
+            }
+        }
+
+        private IEnumerable<GraphToken> GetPackageTokens(IEnumerable<ProjectNode> projectNodes, 
+            NuGetManager packageManager, FrameworkDirectory frameworkDirectory)
+        {
+            HashSet<string> targetFrameworks = projectNodes
+                .Select(projectNode => projectNode.TargetFramework)
+                .OfType<string>()
+                .ToHashSet();
+            HashSet<NuGetIdentifier> packageIdsFromProjects = projectNodes
+                .Select(projectNode => projectNode.PackageId)
+                .OfType<NuGetIdentifier>()
+                .ToHashSet();
+
+            GraphTraversal<NuGetDescriptor, GraphToken> packageTraversal = new() { Strategy = GraphTraversalStrategy.BypassHistory };
+            foreach (var projectNode in projectNodes)
+            {
+                if (projectNode.PackageId is not null)
                 {
-                    ProjectRootElement project = projectFile.ToProject();
-                    GraphKey projectKey = new(projectFile.FullName);
+                    PackageKey packageKey = new(projectNode.PackageId.ToString(), null);
+                    yield return new GraphNodeToken(packageKey, PackageLabels.Package);
+                }
 
-                    string? packageId = project.GetPackageId();
-                    if (!string.IsNullOrWhiteSpace(packageId))
+                IEnumerable<NuGetDescriptor> packageDependencies = projectNode.PackageReferences
+                    .Where(packageReference => !packageIdsFromProjects.Contains(packageReference.Id))
+                    .Select(packageReference => packageManager.ResolvePackage(packageReference))
+                    .ToList();
+                foreach (var packageDependency in packageDependencies)
+                {
+                    PackageKey packageDependencyKey = new(packageDependency.Id.ToString(), packageDependency.Version?.ToString());
+                    yield return new GraphLinkToken(projectNode.Key, packageDependencyKey, PackageLabels.PackageDependency);
+                    foreach (var token in GetPackageTokens(packageDependency, packageManager, frameworkDirectory, packageIdsFromProjects, packageTraversal))
+                        yield return token;
+                }
+            }
+        }
+
+        private ICollection<GraphToken> GetPackageTokens(NuGetDescriptor packageDescriptor, NuGetManager packageManager, FrameworkDirectory frameworkDirectory,
+            HashSet<NuGetIdentifier> packageIdsFromProjects, GraphTraversal<NuGetDescriptor, GraphToken> packageTraversal)
+        {
+            return packageTraversal.Visit(packageDescriptor, () => packageVisitor().ToList());
+            IEnumerable<GraphToken> packageVisitor()
+            {
+                NuGetPackage? package = packageManager.RestorePackage(packageDescriptor);
+                if (package is not null)
+                {
+                    PackageKey packageKey = new(package.Id.ToString(), package.Version.ToString());
+                    yield return new GraphNodeToken(packageKey, PackageLabels.Package);
+
+                    foreach (var assembly in package.Assemblies)
                     {
-                        Progress.Notify($"Packages: {++i}");
-
-                        GraphKey packageKey = new PackageKey(packageId);
-                        yield return new GraphNodeToken(packageKey, CSharpLabels.IsPackage);
-                        yield return new GraphLinkToken(projectKey, packageKey, CSharpLabels.DefinesPackage);
+                        yield return new GraphNodeToken(assembly.Target ?? GraphKey.Null, AssemblyLabels.Assembly);
+                        yield return new GraphLinkToken(packageKey, assembly.Target ?? GraphKey.Null, PackageLabels.PackageAssembly)
+                            .Label(assembly.Framework.Moniker());
                     }
 
-                    foreach (var reference in project.GetPackageReferences())
+                    foreach (var frameworkReference in package.FrameworkReferences)
                     {
-                        GraphKey packageIdReferenceKey = new PackageKey(reference.Id);
-                        yield return new GraphLinkToken(projectKey, packageIdReferenceKey, CSharpLabels.UsesPackageId);
+                        yield return new GraphLinkToken(packageKey, frameworkReference.Target ?? GraphKey.Null, PackageLabels.FrameworkReference)
+                            .Label(frameworkReference.Framework.Moniker());
 
-                        GraphKey packageVersionReferenceKey = new PackageKey(reference.Id, reference.Version);
-                        yield return new GraphLinkToken(projectKey, packageVersionReferenceKey, CSharpLabels.UsesPackageVersion);
+                        AssemblyFile? frameworkAssembly = frameworkDirectory.ResolveAssembly(frameworkReference.Target);
+                        GraphKey frameworkAssemblyKey = frameworkAssembly?.Path ?? GraphKey.Null;
+                        yield return new GraphNodeToken(frameworkAssemblyKey, AssemblyLabels.Assembly);
+                        yield return new GraphLinkToken(packageKey, frameworkAssemblyKey, PackageLabels.FrameworkDependency)
+                            .Label(frameworkReference.Framework.Moniker());
+                    }
+
+                    HashSet<NuGetDescriptor> packageDependencies = new();
+                    foreach (var packageReference in package.PackageReferences)
+                    {
+                        PackageKey? packageDependencyKey = default;
+                        if (packageReference.Target is not null && !packageIdsFromProjects.Contains(packageReference.Target.Id))
+                        {
+                            NuGetDescriptor packageDependency = packageManager.DiscoverPackage(packageReference.Target);
+                            packageDependencyKey = new(packageDependency.Id.ToString(), packageDependency.Version?.ToString());
+                            packageDependencies.Add(packageDependency);
+                        }
+
+                        yield return new GraphLinkToken(packageKey, packageDependencyKey ?? GraphKey.Null, PackageLabels.PackageDependency)
+                            .Label(packageReference.Framework.Moniker());
+                    }
+
+                    foreach (var packageDependency in packageDependencies)
+                    {
+                        foreach (var token in GetPackageTokens(packageDependency, packageManager, frameworkDirectory, packageIdsFromProjects, packageTraversal))
+                            yield return token;
                     }
                 }
-                Progress.Finish($"Packages: {i}");
             }
         }
     }

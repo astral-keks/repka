@@ -1,23 +1,26 @@
-﻿namespace Repka.Reports
+﻿namespace Repka.Diagnostics
 {
     internal class FileSystemReportWriter : ReportWriter
     {
-        private readonly StreamWriter _writer;
+        private readonly TextWriter _writer;
 
-        public FileSystemReportWriter(string location)
+        public FileSystemReportWriter(TextWriter writer)
         {
-            _writer = new(location);
+            _writer = writer;
         }
 
         public override void Write(Report report)
         {
             lock(_writer)
+                Write(report, 0);
+        }
+
+        private void Write(Report report, int indent)
+        {
+            _writer.WriteLine($"{string.Concat(Enumerable.Repeat("\t", indent))}{report.Text}");
+            foreach (var record in report.Records)
             {
-                _writer.WriteLine(report.Title);
-                foreach (var record in report.Records)
-                {
-                    _writer.WriteLine($"\t{record}");
-                }
+                Write(record, indent + 1);
             }
         }
 

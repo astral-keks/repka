@@ -1,6 +1,6 @@
 ﻿using Repka.FileSystems;
 
-namespace Repka.Reports
+namespace Repka.Diagnostics
 {
     public class FileSystemReportProvider : ReportProvider
     {
@@ -12,7 +12,8 @@ namespace Repka.Reports
             Directory.CreateDirectory(directory);
 
             string location = Path.Combine(directory, $"{name}.txt");
-            return new FileSystemReportWriter(location);
+            StreamWriter writer = new(location);
+            return new FileSystemReportWriter(writer);
         }
     }
 }

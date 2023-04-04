@@ -12,6 +12,15 @@
 
         public ISet<GraphLabel> Labels { get; }
 
+        public GraphToken Label(params GraphLabel[] labels) => Label(labels.AsEnumerable());
+        public GraphToken Label(IEnumerable<string> labels) => Label(labels.Select(label => new GraphLabel(label)));
+        public GraphToken Label(IEnumerable<GraphLabel> labels)
+        {
+            foreach (var label in labels)
+                Labels.Add(label);
+            return this;
+        }
+
         public override bool Equals(object? obj)
         {
             return obj is GraphToken token && Keys.SequenceEqual(token.Keys);

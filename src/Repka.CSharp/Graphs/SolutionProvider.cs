@@ -1,5 +1,6 @@
 ﻿using Microsoft.Build.Construction;
 using Repka.Solutions;
+using static Repka.Graphs.SolutionDsl;
 
 namespace Repka.Graphs
 {
@@ -19,12 +20,12 @@ namespace Repka.Graphs
                     if (solution is not null)
                     {
                         GraphKey solutionKey = new(solutionFile.FullName);
-                        yield return new GraphNodeToken(solutionKey, CSharpLabels.IsSolution);
+                        yield return new GraphNodeToken(solutionKey, SolutionLabels.IsSolution);
 
                         foreach (var project in solution.ProjectsInOrder)
                         {
                             GraphKey projectKey = new(project.AbsolutePath);
-                            yield return new GraphLinkToken(solutionKey, projectKey, CSharpLabels.ContainsProject);
+                            yield return new GraphLinkToken(solutionKey, projectKey, SolutionLabels.ContainsProject);
                         }
                     }
                 }

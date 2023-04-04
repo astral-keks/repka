@@ -1,10 +1,8 @@
-﻿using System.Text;
-
-namespace Repka.Graphs
+﻿namespace Repka.Graphs
 {
     public abstract class GraphElement
     {
-        internal GraphElement(GraphToken token, Graph graph)
+        protected internal GraphElement(GraphToken token, Graph graph)
         {
             Token = token;
             Graph = graph;
@@ -15,23 +13,6 @@ namespace Repka.Graphs
         public GraphToken Token { get; }
 
         public Graph Graph { get; }
-
-        public string Text()
-        {
-            StringBuilder text = new();
-            foreach (var key in Token.Keys)
-                text.Append($" {key}");
-            foreach (var label in Token.Labels)
-                text.Append($" {label}");
-            return text.ToString();
-        }
-
-        public GraphAttribute<TValue>? Attribute<TValue>()
-        {
-            return Graph.Attributes(Token)
-                .OfType<GraphAttribute<TValue>>()
-                .SingleOrDefault();
-        }
 
         public override bool Equals(object? obj)
         {
