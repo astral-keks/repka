@@ -1,9 +1,4 @@
-﻿using Repka.Diagnostics;
-using System.Xml.Linq;
-using System;
-using System.Text;
-
-namespace Repka.Graphs
+﻿namespace Repka.Graphs
 {
     public class GraphNode : GraphElement
     {
@@ -37,7 +32,7 @@ namespace Repka.Graphs
             return Inputs()
                 .Select(output => output.Source())
                 .OfType<GraphNode>()
-                .Where(obj => obj.Labels.All(labels));
+                .Where(obj => obj.Labels.ContainsAll(labels));
         }
 
         public IEnumerable<GraphNode> Objects(params GraphLabel[] labels)
@@ -45,7 +40,7 @@ namespace Repka.Graphs
             return Outputs()
                 .Select(output => output.Target())
                 .OfType<GraphNode>()
-                .Where(obj => obj.Labels.All(labels));
+                .Where(obj => obj.Labels.ContainsAll(labels));
         }
 
         public IEnumerable<GraphLink> Links(params GraphLabel[] labels)

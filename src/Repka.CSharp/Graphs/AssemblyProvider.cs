@@ -59,7 +59,7 @@ namespace Repka.Graphs
                 .ToList();
             HashSet<AssemblyFile> packageAssemblies = packageDependencies
                 .SelectMany(packageNode => Enumerable.Concat(
-                    packageNode.PackageAssemblies(targetFramework),
+                    packageNode.Assemblies(targetFramework),
                     packageNode.FrameworkDependencies(targetFramework)))
                 .ToHashSet();
 

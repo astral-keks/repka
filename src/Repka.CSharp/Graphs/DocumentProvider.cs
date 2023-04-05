@@ -41,7 +41,7 @@ namespace Repka.Graphs
                 if (ownerDirectory is not null)
                 {
                     IEnumerable<ProjectNode> ownerProjects = projectsByPath[ownerDirectory]
-                        .Where(ownerProject => ownerProject.HasSdk || ownerProject.DocumentReferences.Contains(documentFile.FullName));
+                        .Where(ownerProject => ownerProject.HasSdk || ownerProject.DocumentLinks.Contains(documentFile.FullName));
                     foreach (var ownerProjectNode in ownerProjects)
                     {
                         yield return new GraphLinkToken(ownerProjectNode.Key, documentKey, DocumentLabels.Document);

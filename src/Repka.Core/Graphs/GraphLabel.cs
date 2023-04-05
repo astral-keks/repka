@@ -19,12 +19,16 @@
 
     public static class GraphLabelExtensions
     {
-        public static bool All(this IEnumerable<GraphLabel> source, IEnumerable<GraphLabel> labels)
+        public static bool ContainsAll(this IEnumerable<GraphLabel> source, params GraphLabel[] labels) =>
+            source.ContainsAll(labels.AsEnumerable());
+        public static bool ContainsAll(this IEnumerable<GraphLabel> source, IEnumerable<GraphLabel> labels)
         {
             return !labels.Any() || labels.All(source.Contains);
         }
 
-        public static bool Any(this IEnumerable<GraphLabel> source, IEnumerable<GraphLabel> labels)
+        public static bool ContainsAny(this IEnumerable<GraphLabel> source, params GraphLabel[] labels) =>
+            source.ContainsAny(labels.AsEnumerable());
+        public static bool ContainsAny(this IEnumerable<GraphLabel> source, IEnumerable<GraphLabel> labels)
         {
             return !labels.Any() || labels.Any(source.Contains);
         }

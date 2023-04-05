@@ -1,4 +1,4 @@
-﻿using Repka.Optionals;
+﻿using Repka.Collections;
 using System.Collections;
 
 namespace Repka.Graphs

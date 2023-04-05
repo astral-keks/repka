@@ -25,6 +25,10 @@ namespace Repka.Packaging
 
         public NuGetFramework Framework { get; }
 
-        public IEnumerable<NuGetMoniker> CompatibilityMatches => NuGetMonikers.CompatibilityGroups[Framework]; 
+        public NuGetMoniker? GetNearest(IEnumerable<string> options)
+        {
+            CompatibilityTable table = new(options.Select(label => Resolve(label)?.Framework).OfType<NuGetFramework>());
+            return Resolve(table.GetNearest(Framework).FirstOrDefault());
+        }
     }
 }

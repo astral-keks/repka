@@ -4,7 +4,6 @@ using Repka.Collections;
 using Repka.Diagnostics;
 using Repka.Frameworks;
 using Repka.Packaging;
-using static Repka.Graphs.AssemblyDsl;
 using static Repka.Graphs.PackageDsl;
 using static Repka.Graphs.ProjectDsl;
 
@@ -54,9 +53,11 @@ namespace Repka.Graphs
                     .ToList();
                 foreach (var packageDependency in packageDependencies)
                 {
-                    PackageKey packageDependencyKey = new(packageDependency.Id.ToString(), packageDependency.Version?.ToString());
+                    PackageKey packageDependencyKey = new(packageDependency);
                     yield return new GraphLinkToken(projectNode.Key, packageDependencyKey, PackageLabels.PackageDependency);
-                    foreach (var token in GetPackageTokens(packageDependency, packageManager, frameworkDirectory, packageIdsFromProjects, packageTraversal))
+                    
+                    var tokens = GetPackageTokens(packageDependency, packageManager, frameworkDirectory, packageIdsFromProjects, packageTraversal);
+                    foreach (var token in tokens)
                         yield return token;
                 }
             }
@@ -66,20 +67,18 @@ namespace Repka.Graphs
             HashSet<NuGetIdentifier> packageIdsFromProjects, GraphTraversal<NuGetDescriptor, GraphToken> packageTraversal)
         {
             return packageTraversal.Visit(packageDescriptor, () => packageVisitor().ToList());
+            
             IEnumerable<GraphToken> packageVisitor()
             {
                 NuGetPackage? package = packageManager.RestorePackage(packageDescriptor);
                 if (package is not null)
                 {
-                    PackageKey packageKey = new(package.Id.ToString(), package.Version.ToString());
+                    PackageKey packageKey = new(package);
                     yield return new GraphNodeToken(packageKey, PackageLabels.Package);
 
                     foreach (var assembly in package.Assemblies)
-                    {
-                        yield return new GraphNodeToken(assembly.Target ?? GraphKey.Null, AssemblyLabels.Assembly);
                         yield return new GraphLinkToken(packageKey, assembly.Target ?? GraphKey.Null, PackageLabels.PackageAssembly)
                             .Label(assembly.Framework.Moniker());
-                    }
 
                     foreach (var frameworkReference in package.FrameworkReferences)
                     {
@@ -87,22 +86,27 @@ namespace Repka.Graphs
                             .Label(frameworkReference.Framework.Moniker());
 
                         AssemblyFile? frameworkAssembly = frameworkDirectory.ResolveAssembly(frameworkReference.Target);
-                        GraphKey frameworkAssemblyKey = frameworkAssembly?.Path ?? GraphKey.Null;
-                        yield return new GraphNodeToken(frameworkAssemblyKey, AssemblyLabels.Assembly);
-                        yield return new GraphLinkToken(packageKey, frameworkAssemblyKey, PackageLabels.FrameworkDependency)
+                        yield return new GraphLinkToken(packageKey, frameworkAssembly?.Path ?? GraphKey.Null, PackageLabels.FrameworkDependency)
                             .Label(frameworkReference.Framework.Moniker());
                     }
 
                     HashSet<NuGetDescriptor> packageDependencies = new();
                     foreach (var packageReference in package.PackageReferences)
                     {
+                        PackageKey? packageReferenceKey = default;
                         PackageKey? packageDependencyKey = default;
                         if (packageReference.Target is not null && !packageIdsFromProjects.Contains(packageReference.Target.Id))
                         {
                             NuGetDescriptor packageDependency = packageManager.DiscoverPackage(packageReference.Target);
-                            packageDependencyKey = new(packageDependency.Id.ToString(), packageDependency.Version?.ToString());
                             packageDependencies.Add(packageDependency);
+
+                            packageReferenceKey = new(packageReference.Target);
+                            packageDependencyKey = new(packageDependency);
                         }
+
+                        if (packageReferenceKey is not null)
+                            yield return new GraphLinkToken(packageKey, packageReferenceKey ?? GraphKey.Null, PackageLabels.PackageReference)
+                                .Label(packageReference.Framework.Moniker());
 
                         yield return new GraphLinkToken(packageKey, packageDependencyKey ?? GraphKey.Null, PackageLabels.PackageDependency)
                             .Label(packageReference.Framework.Moniker());
@@ -110,7 +114,9 @@ namespace Repka.Graphs
 
                     foreach (var packageDependency in packageDependencies)
                     {
-                        foreach (var token in GetPackageTokens(packageDependency, packageManager, frameworkDirectory, packageIdsFromProjects, packageTraversal))
+                        var tokens = GetPackageTokens(packageDependency, packageManager, frameworkDirectory, 
+                            packageIdsFromProjects, packageTraversal);
+                        foreach (var token in tokens)
                             yield return token;
                     }
                 }

@@ -38,15 +38,9 @@ namespace Repka.Packaging
 
         public NuGetVersion? Version { get; set; }
 
-        public static bool operator ==(NuGetDescriptor? left, NuGetDescriptor? right)
-        {
-            return Equals(left, right);
-        }
+        public static bool operator ==(NuGetDescriptor? left, NuGetDescriptor? right) => Equals(left, right);
 
-        public static bool operator !=(NuGetDescriptor? left, NuGetDescriptor? right)
-        {
-            return !Equals(left, right);
-        }
+        public static bool operator !=(NuGetDescriptor? left, NuGetDescriptor? right) => !Equals(left, right);
 
         public override bool Equals(object? obj)
         {

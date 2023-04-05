@@ -1,6 +1,7 @@
 ﻿using Microsoft.CodeAnalysis;
 using Repka.Assemblies;
 using Repka.Packaging;
+using static Repka.Graphs.AssemblyDsl;
 using static Repka.Graphs.DocumentDsl;
 using static Repka.Graphs.PackageDsl;
 
@@ -42,6 +43,10 @@ namespace Repka.Graphs
                 .Select(link => link.TargetKey.ToString())
                 .FirstOrDefault();
 
+            public string? TargetFramework => Outputs(ProjectLabels.TargetFramework)
+                .Select(link => link.TargetKey.ToString())
+                .FirstOrDefault();
+
             public NuGetIdentifier? PackageId => Outputs(ProjectLabels.PackageDefinition)
                 .Select(link => new NuGetIdentifier(link.TargetKey.ToString()))
                 .FirstOrDefault();
@@ -50,9 +55,12 @@ namespace Repka.Graphs
                 .Select(link => link.Target().AsPackage()).OfType<PackageNode>()
                 .FirstOrDefault();
 
-            public string? TargetFramework => Outputs(ProjectLabels.TargetFramework)
-                .Select(link => link.TargetKey.ToString())
-                .FirstOrDefault();
+            public IEnumerable<string> DocumentLinks => Outputs(ProjectLabels.DocumentLink)
+                .Select(link => link.TargetKey.ToString());
+
+            public IEnumerable<DocumentNode> Documents => Outputs(DocumentLabels.Document)
+                .Select(link => link.Target().AsDocument())
+                .OfType<DocumentNode>();
 
             public IEnumerable<string> FrameworkReferences => Outputs(ProjectLabels.FrameworkReference)
                 .Select(link => link.TargetKey.ToString());
@@ -81,12 +89,8 @@ namespace Repka.Graphs
                 .Select(link => link.Target().AsPackage()).OfType<PackageNode>()
                 .ToFragment(packageNode => packageNode.PackageDependencies(targetFramework));
 
-            public IEnumerable<string> DocumentReferences => Outputs(ProjectLabels.DocumentReference)
-                .Select(link => link.TargetKey.ToString());
-
-            public IEnumerable<DocumentNode> Documents => Outputs(DocumentLabels.Document)
-                .Select(link => link.Target().AsDocument())
-                .OfType<DocumentNode>();
+            public IEnumerable<AssemblyFile> AssemblyDependencies => Outputs(AssemblyLabels.AssemblyDependency)
+                .Select(link => new AssemblyFile(link.TargetKey.ToString()));
         }
 
         public static class ProjectLabels
@@ -102,13 +106,17 @@ namespace Repka.Graphs
             public const string PackageDefinition = nameof(PackageDefinition);
 
             public const string FrameworkReference = nameof(FrameworkReference);
-            public const string LibraryReference = nameof(LibraryReference);
-            public const string ProjectReference = nameof(ProjectReference);
-            public const string PackageReference = nameof(PackageReference);
-            public const string DocumentReference = nameof(DocumentReference);
-
             public const string FrameworkDependency = nameof(FrameworkDependency);
+
+            public const string LibraryReference = nameof(LibraryReference);
+
+            public const string ProjectReference = nameof(ProjectReference);
             public const string ProjectDependency = nameof(ProjectDependency);
+
+            public const string PackageReference = nameof(PackageReference);
+
+            public const string DocumentLink = nameof(DocumentLink);
+
         }
     }
 }

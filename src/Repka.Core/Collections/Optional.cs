@@ -1,6 +1,6 @@
 ﻿using System.Collections;
 
-namespace Repka.Optionals
+namespace Repka.Collections
 {
     public static class Optional
     {

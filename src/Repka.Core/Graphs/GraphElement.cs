@@ -21,6 +21,10 @@
                 .SingleOrDefault();
         }
 
+        public static bool operator ==(GraphElement? left, GraphElement? right) => Equals(left, right);
+
+        public static bool operator !=(GraphElement? left, GraphElement? right) => !Equals(left, right);
+
         public override bool Equals(object? obj)
         {
             return obj is GraphElement element &&

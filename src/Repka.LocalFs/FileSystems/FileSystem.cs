@@ -1,6 +1,4 @@
-﻿using Repka.Optionals;
-
-namespace Repka.FileSystems
+﻿namespace Repka.FileSystems
 {
     public sealed class FileSystem
     {
@@ -15,7 +13,5 @@ namespace Repka.FileSystems
         {
             return _factory(entry);
         }
-
-        
     }
 }

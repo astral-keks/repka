@@ -1,27 +1,5 @@
-﻿using Repka.Optionals;
-
-namespace Repka.Graphs
+﻿namespace Repka.Graphs
 {
-    public static class GraphTraversal
-    {
-        public static IEnumerable<TElement> Traverse<TElement>(this IEnumerable<TElement> elements, Func<TElement, IEnumerable<TElement>> expand,
-            GraphTraversal<TElement>? traversal = default)
-            where TElement : notnull
-        {
-            traversal ??= new();
-            return elements.SelectMany(element => element.Traverse(expand, traversal));
-        }
-
-        public static ICollection<TElement> Traverse<TElement>(this TElement element, Func<TElement, IEnumerable<TElement>> expand,
-            GraphTraversal<TElement>? traversal = default)
-            where TElement : notnull
-        {
-            traversal ??= new();
-            return traversal.Visit(element, () => expand(element).Traverse(expand, traversal).Prepend(element).ToList());
-        }
-
-    }
-
     public class GraphTraversal<TElement> : GraphTraversal<TElement, TElement>
         where TElement : notnull
     {

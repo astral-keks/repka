@@ -4,7 +4,6 @@ using Repka.Assemblies;
 using Repka.FileSystems;
 using Repka.Graphs;
 using static Repka.Graphs.DocumentDsl;
-using static Repka.Graphs.PackageDsl;
 using static Repka.Graphs.ProjectDsl;
 
 namespace Repka.Workspaces
@@ -23,21 +22,20 @@ namespace Repka.Workspaces
 
         public Project AddProject(ProjectNode projectNode)
         {
-            List<ProjectNode> projectDependencies = projectNode.ProjectDependencies.Traverse().ToList();
-            HashSet<AssemblyFile> projectAssemblies = CreateProjectDependencies(projectNode, projectDependencies);
-            HashSet<AssemblyFile> packageAssemblies = CreatePackageDependencies(projectNode, projectDependencies);
+            HashSet<ProjectNode> projectDependencies = projectNode.ProjectDependencies.Traverse().ToHashSet();
+            HashSet<AssemblyFile> assemblies = projectNode.AssemblyDependencies.ToHashSet();
 
             List<ProjectReference> projectReferences = projectDependencies
                 .Distinct()
                 .Select(projectNode => new ProjectReference(projectNode.Id))
                 .ToList();
-            List<MetadataReference> metadataReferences = projectAssemblies.Union(packageAssemblies)
+            List<MetadataReference> metadataReferences = assemblies
                 .Where(assemblyFile => assemblyFile.Exists)
                 .SelectMany(assemblyFile => References.GetOrAdd(assemblyFile.Path, () => MetadataReference.CreateFromFile(assemblyFile.Path)))
                 .ToList();
 
             List<DocumentInfo> documents = projectNode.Documents
-                .Select(documentNode => CreateDocument(documentNode, projectNode))
+                .Select(documentNode => AddDocument(documentNode, projectNode))
                 .ToList();
 
             ProjectInfo projectInfo = ProjectInfo.Create(projectNode.Id, VersionStamp.Create(), projectNode.Name, projectNode.Name, LanguageNames.CSharp,
@@ -49,38 +47,7 @@ namespace Repka.Workspaces
             return project;
         }
 
-        private HashSet<AssemblyFile> CreateProjectDependencies(ProjectNode projectNode, List<ProjectNode> projectDependencies)
-        {
-            HashSet<AssemblyFile> projectAssemblies = projectDependencies.Prepend(projectNode)
-                .SelectMany(projectNode => Enumerable.Concat(
-                    projectNode.FrameworkDependencies,
-                    projectNode.LibraryDependencies))
-                .ToHashSet();
-
-            return projectAssemblies;
-        }
-
-        private HashSet<AssemblyFile> CreatePackageDependencies(ProjectNode projectNode, List<ProjectNode> projectDependencies)
-        {
-            string? targetFramework = projectNode.TargetFramework;
-
-            List<PackageNode> packageDependencies = projectDependencies.Prepend(projectNode)
-                .SelectMany(projectNode => projectNode.PackageDependencies(targetFramework).Traverse())
-                .Distinct()
-                .GroupBy(packageNode => packageNode.Id)
-                .Select(packageGroup => packageGroup.MaxBy(packageNode => packageNode.Version))
-                .OfType<PackageNode>()
-                .ToList();
-            HashSet<AssemblyFile> packageAssemblies = packageDependencies
-                .SelectMany(packageNode => Enumerable.Concat(
-                    packageNode.PackageAssemblies(targetFramework),
-                    packageNode.FrameworkDependencies(targetFramework)))
-                .ToHashSet();
-
-            return packageAssemblies;
-        }
-
-        private DocumentInfo CreateDocument(DocumentNode documentNode, ProjectNode projectNode)
+        private DocumentInfo AddDocument(DocumentNode documentNode, ProjectNode projectNode)
         {
             DocumentId documentId = DocumentId.CreateNewId(projectNode.Id);
             using Stream documentStream = documentNode.Read();

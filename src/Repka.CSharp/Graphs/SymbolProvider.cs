@@ -25,7 +25,7 @@ namespace Repka.Graphs
             projectProgress.Complete();
 
             AdhocWorkspace workspace = workspaceBuilder.Workspace;
-
+            
             if (ReportProvider is not null)
             {
                 projectProgress = Progress.Percent("Collecting diagnostics", projectNodes.Count);

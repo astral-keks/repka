@@ -1,6 +1,5 @@
 ﻿using Microsoft.Build.Construction;
-using Repka.Optionals;
-using Repka.Packaging;
+using Repka.Collections;
 using System.Text.RegularExpressions;
 
 namespace Repka.Projects
@@ -133,7 +132,7 @@ namespace Repka.Projects
                 .Concat(frameworkAssemblies);
         }
 
-        public static IEnumerable<DocumentReference> GetDocumentReferences(this ProjectRootElement project)
+        public static IEnumerable<DocumentReference> GetDocumentLinks(this ProjectRootElement project)
         {
             return project.FullPath.ToOptional()
                 .Map(path => Path.GetDirectoryName(project.FullPath))

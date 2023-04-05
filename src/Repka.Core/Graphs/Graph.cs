@@ -1,4 +1,4 @@
-﻿using Repka.Optionals;
+﻿using Repka.Collections;
 
 namespace Repka.Graphs
 {
@@ -55,7 +55,7 @@ namespace Repka.Graphs
         {
             return _nodes
                 .Select(nodeToken => new GraphNode(nodeToken, this))
-                .Where(node => node.Labels.All(labels));
+                .Where(node => node.Labels.ContainsAll(labels));
         }
 
         public GraphLink? Link(GraphKey sourceKey, GraphKey targetKey)
@@ -70,14 +70,14 @@ namespace Repka.Graphs
         {
             return _links.FindAll(nodeKey)
                 .Select(linkToken => new GraphLink(linkToken, this))
-                .Where(link => link.Labels.All(labels));
+                .Where(link => link.Labels.ContainsAll(labels));
         }
 
         public IEnumerable<GraphLink> Links(params GraphLabel[] labels)
         {
             return _links
                 .Select(linkToken => new GraphLink(linkToken, this))
-                .Where(link => link.Labels.All(labels));
+                .Where(link => link.Labels.ContainsAll(labels));
         }
 
         public void Set(GraphAttribute attribute)

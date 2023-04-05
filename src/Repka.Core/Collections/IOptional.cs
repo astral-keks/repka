@@ -1,4 +1,4 @@
-﻿namespace Repka.Optionals
+﻿namespace Repka.Collections
 {
     public interface IOptional<out T> : IEnumerable<T>
     {

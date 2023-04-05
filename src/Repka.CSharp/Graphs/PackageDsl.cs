@@ -1,5 +1,7 @@
-﻿using NuGet.Versioning;
+﻿using NuGet.Frameworks;
+using NuGet.Versioning;
 using Repka.Assemblies;
+using Repka.Collections;
 using Repka.Packaging;
 using static Repka.Graphs.ProjectDsl;
 
@@ -16,19 +18,15 @@ namespace Repka.Graphs
             ? new PackageNode(node)
             : default;
 
+        public static PackageGrouping GroupByTargetFramework(this IEnumerable<GraphLink> links) => new(links);
+
         public class PackageNode : GraphNode
         {
             private readonly PackageKey _key;
-            private readonly NuGetCompatibility _assembliesCompatibility;
-            private readonly NuGetCompatibility _frameworkDependenciesCompatibility;
-            private readonly NuGetCompatibility _packageDependenciesCompatibility;
 
             internal PackageNode(GraphNode node) : base(node)
             {
                 _key = PackageKey.Parse(Key);
-                _assembliesCompatibility = GetCompatibility(PackageLabels.PackageAssembly);
-                _frameworkDependenciesCompatibility = GetCompatibility(PackageLabels.FrameworkDependency);
-                _packageDependenciesCompatibility = GetCompatibility(PackageLabels.PackageDependency);
             }
 
             public NuGetIdentifier Id => new(_key.Id);
@@ -44,21 +42,22 @@ namespace Repka.Graphs
             public IEnumerable<ProjectNode> ReferencingProjects => Inputs(ProjectLabels.ProjectReference)
                 .Select(link => link.Source().AsProject()).OfType<ProjectNode>();
 
-            public IEnumerable<AssemblyFile> PackageAssemblies(string? targetFramework) => _assembliesCompatibility.Resolve(targetFramework)
-                .SelectMany(tfm => Outputs(PackageLabels.PackageAssembly, tfm))
+            public IEnumerable<PackageNode> ReferencingPackages(string? targetFramework) => Inputs(PackageLabels.PackageDependency)
+                .GroupByTargetFramework().SelectNearest(targetFramework)
+                .Select(link => link.Source().AsPackage()).OfType<PackageNode>();
+
+            public IEnumerable<AssemblyFile> Assemblies(string? targetFramework) => Outputs(PackageLabels.PackageAssembly)
+                .GroupByTargetFramework().SelectNearest(targetFramework)
                 .Select(link => new AssemblyFile(link.TargetKey));
 
-            public IEnumerable<AssemblyFile> FrameworkDependencies(string? targetFramework) => _frameworkDependenciesCompatibility.Resolve(targetFramework)
-                .SelectMany(tfm => Outputs(PackageLabels.FrameworkDependency, tfm))
+            public IEnumerable<AssemblyFile> FrameworkDependencies(string? targetFramework) => Outputs(PackageLabels.FrameworkDependency)
+                .GroupByTargetFramework().SelectNearest(targetFramework)
                 .Select(link => new AssemblyFile(link.TargetKey));
 
-            public GraphFragment<PackageNode> PackageDependencies(string? targetFramework) => _packageDependenciesCompatibility.Resolve(targetFramework)
-                .SelectMany(tfm => Outputs(PackageLabels.PackageDependency, tfm))
+            public GraphFragment<PackageNode> PackageDependencies(string? targetFramework) => Outputs(PackageLabels.PackageDependency)
+                .GroupByTargetFramework().SelectNearest(targetFramework)
                 .Select(link => link.Target().AsPackage()).OfType<PackageNode>()
                 .ToFragment(packageVersionNode => packageVersionNode.PackageDependencies(targetFramework));
-
-            private NuGetCompatibility GetCompatibility(GraphLabel label) => 
-                new(Outputs(label).SelectMany(link => link.Labels).Select(label => label.ToString()));
         }
 
         public class PackageKey : GraphKey
@@ -76,6 +75,16 @@ namespace Repka.Graphs
                 return key;
             }
 
+            public PackageKey(NuGetPackage package)
+                : this(package.Id.ToString(), package.Version.ToString())
+            {
+            }
+            
+            public PackageKey(NuGetDescriptor packageDescriptor)
+                : this(packageDescriptor.Id.ToString(), packageDescriptor.Version?.ToString())
+            {
+            }
+
             public PackageKey(string packageId, string? packageVersion)
                 : base($"{packageId}:{packageVersion}")
             {
@@ -88,14 +97,46 @@ namespace Repka.Graphs
             public string? Version { get; }
         }
 
+        public class PackageGrouping
+        {
+            private readonly HashSet<GraphLink> _links;
+            private readonly HashSet<NuGetFramework> _frameworks;
+            private readonly CompatibilityTable _table;
+
+            public PackageGrouping(IEnumerable<GraphLink> links)
+            {
+                _links = links.ToHashSet();
+                _frameworks = _links
+                    .SelectMany(link => link.Labels)
+                    .Select(label => label.ToString())
+                    .Select(label => NuGetMoniker.Resolve(label)?.Framework)
+                    .OfType<NuGetFramework>()
+                    .ToHashSet();
+                _table = new(_frameworks);
+            }
+
+            public IEnumerable<GraphLink> SelectNearestOrAll(string? targetFramework)
+            {
+                return _frameworks.Any() ? SelectNearest(targetFramework) : _links;
+            }
+
+            public IEnumerable<GraphLink> SelectNearest(string? targetFramework)
+            {
+                NuGetFramework targetNugetFramework = NuGetMoniker.Resolve(targetFramework)?.Framework ?? NuGetFramework.AnyFramework;
+                return _table.GetNearest(targetNugetFramework).FirstOrDefault().Moniker().ToOptional()
+                    .SelectMany(nearestMoniker => _links.Where(link => link.Labels.ContainsAny(nearestMoniker)));
+            }
+        }
+
         public static class PackageLabels
         {
             public const string Package = nameof(Package);
             public const string PackageAssembly = nameof(PackageAssembly);
+            public const string PackageReference = nameof(PackageReference);
             public const string PackageDependency = nameof(PackageDependency);
-            
-            public const string FrameworkDependency = nameof(FrameworkDependency);
+
             public const string FrameworkReference = nameof(FrameworkReference);
+            public const string FrameworkDependency = nameof(FrameworkDependency);
         }
     }
 }

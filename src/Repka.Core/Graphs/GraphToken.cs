@@ -25,7 +25,7 @@
 
         public override bool Equals(object? obj)
         {
-            return obj is GraphToken token && _keys.SequenceEqual(token._keys);
+            return obj is GraphToken token && _keys.SetEquals(token._keys);
         }
 
         public override int GetHashCode()

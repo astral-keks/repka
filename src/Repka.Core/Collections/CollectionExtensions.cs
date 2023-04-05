@@ -9,6 +9,5 @@
                 collection.Add(item);
             }
         }
-
     }
 }

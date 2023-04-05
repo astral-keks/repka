@@ -9,41 +9,41 @@ namespace Repka.Packaging
             .Select(framework => framework.Moniker())
             .OfType<string>();
 
-        private static readonly NuGetMoniker NetCoreApp10 = new("netcoreapp1.0");
-        private static readonly NuGetMoniker NetCoreApp11 = new("netcoreapp1.1");
-        private static readonly NuGetMoniker NetCoreApp20 = new("netcoreapp2.0");
-        private static readonly NuGetMoniker NetCoreApp21 = new("netcoreapp2.1");
-        private static readonly NuGetMoniker NetCoreApp22 = new("netcoreapp2.2");
-        private static readonly NuGetMoniker NetCoreApp30 = new("netcoreapp3.0");
-        private static readonly NuGetMoniker NetCoreApp31 = new("netcoreapp3.1");
-        private static readonly NuGetMoniker NetStandard10 = new("netstandard1.0");
-        private static readonly NuGetMoniker NetStandard11 = new("netstandard1.1");
-        private static readonly NuGetMoniker NetStandard12 = new("netstandard1.2");
-        private static readonly NuGetMoniker NetStandard13 = new("netstandard1.3");
-        private static readonly NuGetMoniker NetStandard14 = new("netstandard1.4");
-        private static readonly NuGetMoniker NetStandard15 = new("netstandard1.5");
-        private static readonly NuGetMoniker NetStandard16 = new("netstandard1.6");
-        private static readonly NuGetMoniker NetStandard20 = new("netstandard2.0");
-        private static readonly NuGetMoniker NetStandard21 = new("netstandard2.1");
-        private static readonly NuGetMoniker Net11 = new("net11");
-        private static readonly NuGetMoniker Net20 = new("net20");
-        private static readonly NuGetMoniker Net35 = new("net35");
-        private static readonly NuGetMoniker Net40 = new("net40");
-        private static readonly NuGetMoniker Net403 = new("net403");
-        private static readonly NuGetMoniker Net45 = new("net45");
-        private static readonly NuGetMoniker Net451 = new("net451");
-        private static readonly NuGetMoniker Net452 = new("net452");
-        private static readonly NuGetMoniker Net46 = new("net46");
-        private static readonly NuGetMoniker Net461 = new("net461");
-        private static readonly NuGetMoniker Net462 = new("net462");
-        private static readonly NuGetMoniker Net47 = new("net47");
-        private static readonly NuGetMoniker Net471 = new("net471");
-        private static readonly NuGetMoniker Net472 = new("net472");
-        private static readonly NuGetMoniker Net48 = new("net48");
-        private static readonly NuGetMoniker Net50 = new("net50");
-        private static readonly NuGetMoniker Net60 = new("net60");
-        private static readonly NuGetMoniker Net70 = new("net70");
-        internal static readonly NuGetMoniker[] All =
+        public static readonly NuGetMoniker NetCoreApp10 = new("netcoreapp1.0");
+        public static readonly NuGetMoniker NetCoreApp11 = new("netcoreapp1.1");
+        public static readonly NuGetMoniker NetCoreApp20 = new("netcoreapp2.0");
+        public static readonly NuGetMoniker NetCoreApp21 = new("netcoreapp2.1");
+        public static readonly NuGetMoniker NetCoreApp22 = new("netcoreapp2.2");
+        public static readonly NuGetMoniker NetCoreApp30 = new("netcoreapp3.0");
+        public static readonly NuGetMoniker NetCoreApp31 = new("netcoreapp3.1");
+        public static readonly NuGetMoniker NetStandard10 = new("netstandard1.0");
+        public static readonly NuGetMoniker NetStandard11 = new("netstandard1.1");
+        public static readonly NuGetMoniker NetStandard12 = new("netstandard1.2");
+        public static readonly NuGetMoniker NetStandard13 = new("netstandard1.3");
+        public static readonly NuGetMoniker NetStandard14 = new("netstandard1.4");
+        public static readonly NuGetMoniker NetStandard15 = new("netstandard1.5");
+        public static readonly NuGetMoniker NetStandard16 = new("netstandard1.6");
+        public static readonly NuGetMoniker NetStandard20 = new("netstandard2.0");
+        public static readonly NuGetMoniker NetStandard21 = new("netstandard2.1");
+        public static readonly NuGetMoniker Net11 = new("net11");
+        public static readonly NuGetMoniker Net20 = new("net20");
+        public static readonly NuGetMoniker Net35 = new("net35");
+        public static readonly NuGetMoniker Net40 = new("net40");
+        public static readonly NuGetMoniker Net403 = new("net403");
+        public static readonly NuGetMoniker Net45 = new("net45");
+        public static readonly NuGetMoniker Net451 = new("net451");
+        public static readonly NuGetMoniker Net452 = new("net452");
+        public static readonly NuGetMoniker Net46 = new("net46");
+        public static readonly NuGetMoniker Net461 = new("net461");
+        public static readonly NuGetMoniker Net462 = new("net462");
+        public static readonly NuGetMoniker Net47 = new("net47");
+        public static readonly NuGetMoniker Net471 = new("net471");
+        public static readonly NuGetMoniker Net472 = new("net472");
+        public static readonly NuGetMoniker Net48 = new("net48");
+        public static readonly NuGetMoniker Net50 = new("net50");
+        public static readonly NuGetMoniker Net60 = new("net60");
+        public static readonly NuGetMoniker Net70 = new("net70");
+        public static readonly NuGetMoniker[] All =
         {
             NetCoreApp10,
             NetCoreApp11,
@@ -81,11 +81,11 @@ namespace Repka.Packaging
             Net70
         };
 
-        internal static readonly NuGetFramework[] AllFrameworks = All.Select(moniker => moniker.Framework).ToArray();
+        public static readonly NuGetFramework[] AllFrameworks = All.Select(moniker => moniker.Framework).ToArray();
 
-        internal static readonly Dictionary<string, NuGetMoniker> ById = All.ToDictionary(moniker => moniker.Id);
-        internal static readonly Dictionary<NuGetFramework, NuGetMoniker> ByFramework = All.ToDictionary(moniker => moniker.Framework);
-        private static readonly CompatibilityTable CompatibilityTable = new(ByFramework.Keys);
+        public static readonly Dictionary<string, NuGetMoniker> ById = All.ToDictionary(moniker => moniker.Id);
+        public static readonly Dictionary<NuGetFramework, NuGetMoniker> ByFramework = All.ToDictionary(moniker => moniker.Framework);
+        internal static readonly CompatibilityTable CompatibilityTable = new(ByFramework.Keys);
         internal static readonly Dictionary<NuGetFramework, IEnumerable<NuGetMoniker>> CompatibilityGroups = All
             .SelectMany(mapping => CompatibilityTable.TryGetCompatible(mapping.Framework, out var compatible)
                 ? compatible.Select(compatible => (From: compatible, To: mapping))

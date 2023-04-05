@@ -29,5 +29,13 @@ namespace Repka.Graphs
         {
             return Graph.Node(TargetKey);
         }
+
+        public IEnumerable<GraphNode> Nodes()
+        {
+            if (Source() is GraphNode source)
+                yield return source;
+            if (Target() is GraphNode target)
+                yield return target;
+        }
     }
 }

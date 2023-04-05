@@ -4,55 +4,82 @@ namespace Repka.Graphs
 {
     public static class GraphReporting
     {
-        public static Report? Report(this GraphNode node, string key, string[] labels)
+        public static Report ToReport(this IEnumerable<GraphTrace> traces) => new()
         {
-            GraphTraversal<GraphNode, Report?> traversal = new();
-            return node.Report(key, labels.Select(label => new GraphLabel(label)).ToArray(), traversal);
-        }
+            Text = "Traces",
+            Records = traces.Select(trace => trace.ToReport()).ToList(),
+        };
 
-        private static Report? Report(this GraphNode node, GraphKey key, GraphLabel[] labels, 
-            GraphTraversal<GraphNode, Report?> traversal)
+        public static Report ToReport(this GraphTrace trace) => new()
         {
-            return traversal.Visit(node, () => 
+            Text = $"{trace.Source?.Key} -> {trace.Target?.Key}",
+            Records = trace.Select(link => link.ToReport()).ToList()
+        };
+
+        public static Report ToReport(this GraphLink link) => new()
+        {
+            Text = link.SourceKey,
+            Records = new List<Report>
             {
-                Report? result = default;
+                new Report { Text = string.Join(", ", link.Labels) },
+                new Report { Text = link.TargetKey },
+            }
+        };
 
-                if (!node.Key.Contains(key))
-                {
-                    HashSet<GraphLink> links = labels.SelectMany(label => node.Outputs(label)).ToHashSet();
-                    List<Report> records = links
-                        .Select(link => link.Target()?.Report(key, labels, traversal))
-                        .OfType<Report>()
-                        .ToList();
-                    if (records.Any())
-                        result = new Report { Text = node.Key, Records = records };
-                }
-                else
-                    result = new Report() { Text = node.Key };
+        //{
+        //    Report report = new();
+        //    Dictionary<GraphKey, Report> records = new();
 
-                return result;
-            });
-        }
+        //    GraphKey? sourceKey = default;
+        //    GraphKey? targetKey = default;
+        //    Dictionary<GraphKey, HashSet<GraphLink>> inputs = new();
+        //    Dictionary<GraphKey, HashSet<GraphLink>> outputs = new();
 
-        public static Report Report(this GraphNode node, params GraphLabel[] labels)
-        {
-            GraphTraversal<GraphNode, Report> traversal = new();
-            return node.Report(labels, traversal);
-        }
+        //    foreach (GraphTrace trace in traces)
+        //    {
+        //        if (sourceKey is null)
+        //            sourceKey = trace.Source?.Key;
+        //        if (targetKey is null)
+        //            targetKey = trace.Target?.Key;
 
-        private static Report Report(this GraphNode node, GraphLabel[] labels, 
-            GraphTraversal<GraphNode, Report> traversal)
-        {
-            return traversal.Visit(node, () => new Report()
-            {
-                Text = node.Key,
-                Records = labels.SelectMany(label => node.Outputs(label))
-                    .Distinct()
-                    .Select(link => link.Target())
-                    .OfType<GraphNode>()
-                    .Select(target => target.Report(labels, traversal))
-                    .ToList()
-            }) ?? new();
-        }
+        //        foreach (GraphLink link in trace)
+        //        {
+        //            records.TryAdd(link.SourceKey, new());
+        //            records.TryAdd(link.TargetKey, new());
+
+        //            if (!inputs.ContainsKey(link.TargetKey))
+        //                inputs[link.TargetKey] = new();
+        //            inputs[link.TargetKey].Add(link);
+
+        //            if (!outputs.ContainsKey(link.SourceKey))
+        //                outputs[link.SourceKey] = new();
+        //            outputs[link.SourceKey].Add(link);
+        //        }
+        //    }
+
+        //    foreach ((GraphKey key, Report record) in records)
+        //    {
+        //        record.Text = key;
+        //        record.Records = new List<Report>
+        //        {
+        //            new Report
+        //            {
+        //                Text = "Inputs",
+        //                Records = inputs[key]
+        //                    .Select(link => new Report { Text = link.ToString() })
+        //                    .ToList()
+        //            },
+        //            new Report
+        //            {
+        //                Text = "Outputs",
+        //                Records = outputs[key]
+        //                    .Select(link => new Report { Text = link.ToString() })
+        //                    .ToList()
+        //            }
+        //        };
+        //    }
+
+        //    return report;
+        //}
     }
 }

@@ -26,13 +26,13 @@ namespace Repka.Graphs
         public IEnumerable<TElement> Traverse()
         {
             GraphTraversal<TElement> traversal = new() { Strategy = GraphTraversalStrategy.BypassHistory };
-            return _roots.Traverse(_flatten, traversal);
+            return _roots.Flatten(_flatten, traversal);
         }
 
         public IEnumerable<TElement> Flatten()
         {
             GraphTraversal<TElement> traversal = new() { Strategy = GraphTraversalStrategy.RecallHistory };
-            return _roots.Traverse(_flatten, traversal);
+            return _roots.Flatten(_flatten, traversal);
         }
 
         public IEnumerator<TElement> GetEnumerator()

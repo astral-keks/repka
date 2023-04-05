@@ -4,20 +4,16 @@
     {
         private readonly string _value;
 
+        public static implicit operator string(NuGetIdentifier identifier) => identifier._value;
+        public static implicit operator NuGetIdentifier(string value) => new(value);
         public NuGetIdentifier(string value)
         {
             _value = value;
         }
 
-        public static bool operator ==(NuGetIdentifier? left, NuGetIdentifier? right)
-        {
-            return Equals(left, right);
-        }
+        public static bool operator ==(NuGetIdentifier? left, NuGetIdentifier? right) => Equals(left, right);
 
-        public static bool operator !=(NuGetIdentifier? left, NuGetIdentifier? right)
-        {
-            return !Equals(left, right);
-        }
+        public static bool operator !=(NuGetIdentifier? left, NuGetIdentifier? right) => !Equals(left, right);
 
         public override bool Equals(object? obj)
         {
