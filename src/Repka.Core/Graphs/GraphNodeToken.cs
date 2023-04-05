@@ -12,7 +12,7 @@
 
         public override string ToString()
         {
-            return $"Key={Key}";
+            return $"Key={Key}; Labels={string.Join(", ", Labels)}";
         }
     }
 }

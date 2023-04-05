@@ -10,18 +10,19 @@ namespace Repka.Packaging
 
         public static NuGetOverrides Load(DirectoryInfo? directory)
         {
-            NuGetOverrides? overrides;
+            NuGetOverrides? overrides = default;
 
-            FileInfo? buildTargetsFile = directory is not null
-                ? new FileInfo(Path.Combine(directory.FullName, "Directory.Build.targets"))
-                : null;
-            if (buildTargetsFile?.Exists == true)
+            if (directory is not null)
             {
-                ProjectRootElement buildTargets = buildTargetsFile.ToProject();
-                overrides = new(buildTargets);
+                FileInfo buildTargetsFile = new FileInfo(Path.Combine(directory.FullName, "Directory.Build.targets"));
+                if (buildTargetsFile?.Exists == true)
+                {
+                    ProjectRootElement buildTargets = buildTargetsFile.ToProject();
+                    overrides = new(buildTargets);
+                }
+                else
+                    overrides = Load(directory?.Parent);
             }
-            else
-                overrides = Load(directory?.Parent);
 
             return overrides ?? new();
         }

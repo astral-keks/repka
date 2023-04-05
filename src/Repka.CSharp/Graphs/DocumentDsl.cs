@@ -1,4 +1,5 @@
 ﻿using static Repka.Graphs.ProjectDsl;
+using static Repka.Graphs.SymbolDsl;
 
 namespace Repka.Graphs
 {
@@ -18,7 +19,7 @@ namespace Repka.Graphs
         {
             internal DocumentNode(GraphNode node) : base(node) { }
 
-            public string Name => System.IO.Path.GetFileNameWithoutExtension(Path);
+            public string Name => System.IO.Path.GetFileName(Path);
 
             public string Path => Key;
 
@@ -26,6 +27,12 @@ namespace Repka.Graphs
 
             public IEnumerable<ProjectNode> Projects => Inputs(DocumentLabels.Document)
                 .Select(link => link.Source().AsProject()).OfType<ProjectNode>();
+
+            public IEnumerable<SymbolNode> SymbolDefinitions => Outputs(SymbolLabels.DefinesSymbol)
+                .Select(link => link.Target().AsSymbol()).OfType<SymbolNode>();
+
+            public IEnumerable<SymbolNode> SymbolReferences => Outputs(SymbolLabels.UsesSymbol)
+                .Select(link => link.Target().AsSymbol()).OfType<SymbolNode>();
 
             public Stream Read() => File.OpenRead(Path);
         }

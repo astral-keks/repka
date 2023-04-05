@@ -4,7 +4,7 @@ namespace Repka.Graphs
 {
     public class FileSystemProvider : GraphProvider
     {
-        public FileSystem FileSystem { private get; init; } = FileSystemDefinitions.Empty();
+        public FileSystems.FileSystem FileSystem { private get; init; } = FileSystemDefinitions.Empty();
 
         public override IEnumerable<GraphToken> GetTokens(GraphKey key, Graph graph)
         {

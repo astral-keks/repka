@@ -1,6 +1,8 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
 using Repka.Assemblies;
+using Repka.FileSystems;
+using Repka.Graphs;
 using static Repka.Graphs.DocumentDsl;
 using static Repka.Graphs.PackageDsl;
 using static Repka.Graphs.ProjectDsl;
@@ -13,10 +15,17 @@ namespace Repka.Workspaces
 
         public AdhocWorkspace Workspace { get; } = new();
 
+        public Solution AddSolution(GraphKey root)
+        {
+            string path = FileSystemPaths.Aux(root, "all.sln");
+            return Workspace.AddSolution(SolutionInfo.Create(SolutionId.CreateNewId(), VersionStamp.Create(), path));
+        }
+
         public Project AddProject(ProjectNode projectNode)
         {
-            (List<ProjectNode> projectDependencies, HashSet<AssemblyFile> projectAssemblies) = CreateProjectDependencies(projectNode);
-            (List<PackageNode> packageDependencies, HashSet<AssemblyFile> packageAssemblies) = CreatePackageDependencies(projectNode, projectDependencies);
+            List<ProjectNode> projectDependencies = projectNode.ProjectDependencies.Traverse().ToList();
+            HashSet<AssemblyFile> projectAssemblies = CreateProjectDependencies(projectNode, projectDependencies);
+            HashSet<AssemblyFile> packageAssemblies = CreatePackageDependencies(projectNode, projectDependencies);
 
             List<ProjectReference> projectReferences = projectDependencies
                 .Distinct()
@@ -40,19 +49,18 @@ namespace Repka.Workspaces
             return project;
         }
 
-        private (List<ProjectNode>, HashSet<AssemblyFile>) CreateProjectDependencies(ProjectNode projectNode)
+        private HashSet<AssemblyFile> CreateProjectDependencies(ProjectNode projectNode, List<ProjectNode> projectDependencies)
         {
-            List<ProjectNode> projectDependencies = projectNode.ProjectDependencies.Traverse().ToList();
             HashSet<AssemblyFile> projectAssemblies = projectDependencies.Prepend(projectNode)
                 .SelectMany(projectNode => Enumerable.Concat(
                     projectNode.FrameworkDependencies,
                     projectNode.LibraryDependencies))
                 .ToHashSet();
 
-            return (projectDependencies, projectAssemblies);
+            return projectAssemblies;
         }
 
-        private (List<PackageNode>, HashSet<AssemblyFile>) CreatePackageDependencies(ProjectNode projectNode, List<ProjectNode> projectDependencies)
+        private HashSet<AssemblyFile> CreatePackageDependencies(ProjectNode projectNode, List<ProjectNode> projectDependencies)
         {
             string? targetFramework = projectNode.TargetFramework;
 
@@ -69,7 +77,7 @@ namespace Repka.Workspaces
                     packageNode.FrameworkDependencies(targetFramework)))
                 .ToHashSet();
 
-            return (packageDependencies, packageAssemblies);
+            return packageAssemblies;
         }
 
         private DocumentInfo CreateDocument(DocumentNode documentNode, ProjectNode projectNode)

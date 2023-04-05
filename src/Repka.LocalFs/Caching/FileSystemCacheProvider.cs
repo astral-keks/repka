@@ -4,13 +4,11 @@ namespace Repka.Caching
 {
     public class FileSystemCacheProvider : CacheProvider
     {
-        public string? Root { get; init; }
-
         protected override List<CacheEntry> Read(string store, string name)
         {
             List<CacheEntry> entries = new(0);
 
-            string directory = FileSystemPaths.GetRootPath(Root, store);
+            string directory = FileSystemPaths.Aux(store);
             Directory.CreateDirectory(directory);
 
             string location = Path.Combine(directory, $"{name}.txt");
@@ -25,7 +23,7 @@ namespace Repka.Caching
 
         protected override void Write(string store, string name, IEnumerable<CacheEntry> entries)
         {
-            string directory = FileSystemPaths.GetRootPath(Root, store);
+            string directory = FileSystemPaths.Aux(store);
             Directory.CreateDirectory(directory);
 
             string location = Path.Combine(directory, $"{name}.txt");

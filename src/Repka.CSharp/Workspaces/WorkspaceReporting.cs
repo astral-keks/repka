@@ -1,43 +1,27 @@
 ﻿using Microsoft.CodeAnalysis;
 using Repka.Diagnostics;
+using Repka.FileSystems;
 
 namespace Repka.Workspaces
 {
     internal static class WorkspaceReporting
     {
-        public static void Report(this ReportProvider? provider, Workspace workspace, string store, params string[] projects)
+        public static IEnumerable<Project> Report(this ReportProvider? provider, Workspace workspace, WorkspaceInspector? inspector = default)
         {
-            if (provider is not null)
+            if (provider is not null && workspace.CurrentSolution.FilePath is not null)
             {
-                using (ReportWriter diagrnosticsWriter = provider.GetWriter(store, "diagnostics"))
+                string aux = FileSystemPaths.Aux(workspace.CurrentSolution.FilePath);
+                using (ReportWriter diagrnosticsWriter = provider.GetWriter(aux, "diagnostics"))
                 {
-                    diagrnosticsWriter.Write(workspace.ToReport(WorkspaceInspector.Default with
+                    foreach (var project in workspace.CurrentSolution.Projects)
                     {
-                        IncludeProjects = projects.ToHashSet()
-                    }));
+                        diagrnosticsWriter.Write(project.ToReport(inspector ?? WorkspaceInspector.Default));
+                        yield return project;
+                    }
+                    
                 }
             }
         }
-
-        public static Report ToReport(this IEnumerable<WorkspaceReferences> references) => new()
-        {
-            Text = "All unresolved references",
-            Records = references.Select(references => references.ToReport())
-        };
-
-        public static Report ToReport(this WorkspaceReferences references) => new()
-        {
-            Text = "Unresolved references:",
-            Records = references.Unresolved.Select(reference => new Report { Text = reference })
-        };
-
-        public static Report ToReport(this Workspace workspace, WorkspaceInspector? inspector = default) => new()
-        {
-            Text = "Diagnostics:",
-            Records = workspace.CurrentSolution.Projects
-                .Where(project => inspector is null || inspector.Value.IsRelevantProject(project))
-                .Select(project => project.ToReport(inspector))
-        };
 
         public static Report ToReport(this Project project, WorkspaceInspector? inspector = default) => new()
         {

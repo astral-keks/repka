@@ -5,13 +5,13 @@ namespace Repka.Frameworks
 {
     public class FrameworkDirectory
     {
-        private readonly DirectoryInfo _root;
+        private readonly List<DirectoryInfo> _roots;
         private readonly Lazy<List<AssemblyFile>> _assemblies;
         private readonly ConcurrentDictionary<string, AssemblyFile?> _cache;
 
-        public FrameworkDirectory(string root, List<string> assemblies)
+        public FrameworkDirectory(List<string> roots, List<string> assemblies)
         {
-            _root = new DirectoryInfo(root);
+            _roots = roots.Select(root => new DirectoryInfo(root)).ToList();
             _assemblies = new(() => ResolveAssemblies(assemblies), true);
             _cache = new ConcurrentDictionary<string, AssemblyFile?>();
         }
@@ -30,10 +30,20 @@ namespace Repka.Frameworks
             return assemblyName is not null 
                 ? _cache.GetOrAdd(assemblyName, _ =>
                 {
-                    string assenblyFileName = $"{assemblyName}.dll";
-                    string assemblyLocation = Path.Combine(_root.FullName, assenblyFileName);
-                    AssemblyFile assemblyFile = new(assemblyLocation);
-                    return assemblyFile.Exists ? assemblyFile : default;
+                    AssemblyFile? assemblyFile = default;
+
+                    foreach (var root in _roots)
+                    {
+                        string assenblyFileName = $"{assemblyName}.dll";
+                        string assemblyLocation = Path.Combine(root.FullName, assenblyFileName);
+                        assemblyFile = new(assemblyLocation);
+                        if (assemblyFile.Exists)
+                            break;
+                        else
+                            assemblyFile = default;
+                    }
+
+                    return assemblyFile;
                 })
                 : default;
         }

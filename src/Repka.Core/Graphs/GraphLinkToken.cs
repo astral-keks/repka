@@ -15,7 +15,7 @@
 
         public override string ToString()
         {
-            return $"SourceKey={SourceKey}, TargetKey={TargetKey}";
+            return $"SourceKey={SourceKey}; TargetKey={TargetKey}; Labels={string.Join(", ", Labels)}";
         }
     }
 }

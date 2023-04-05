@@ -19,12 +19,6 @@
 
     public static class GraphLabelExtensions
     {
-        public static void AddRange(this ICollection<GraphLabel> source, IEnumerable<GraphLabel> labels)
-        {
-            foreach (var label in labels)
-                source.Add(label);
-        }
-
         public static bool All(this IEnumerable<GraphLabel> source, IEnumerable<GraphLabel> labels)
         {
             return !labels.Any() || labels.All(source.Contains);

@@ -1,4 +1,4 @@
-﻿namespace Repka.Files
+﻿namespace Repka.FileSystems
 {
     public static class FileSystemExtensions
     {

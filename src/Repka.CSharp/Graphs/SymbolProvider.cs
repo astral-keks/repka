@@ -17,6 +17,7 @@ namespace Repka.Graphs
         public override IEnumerable<GraphToken> GetTokens(GraphKey key, Graph graph)
         {
             WorkspaceBuilder workspaceBuilder = new();
+            workspaceBuilder.AddSolution(key);
 
             List<ProjectNode> projectNodes = graph.Projects().ToList();
             ProgressPercentage projectProgress = Progress.Percent("Creating workspace", projectNodes.Count);
@@ -24,37 +25,39 @@ namespace Repka.Graphs
             projectProgress.Complete();
 
             AdhocWorkspace workspace = workspaceBuilder.Workspace;
-            ReportProvider.Report(workspace, key, "Web.Common", "Appliance.AccessControl");
+
+            if (ReportProvider is not null)
+            {
+                projectProgress = Progress.Percent("Collecting diagnostics", projectNodes.Count);
+                ReportProvider.Report(workspace).ForAll(_ => projectProgress.Increment());
+                projectProgress.Complete();
+            }
 
             List<Document> documents = workspace.CurrentSolution.Projects.SelectMany(project => project.Documents).ToList();
-            ProgressPercentage symbolProgress = Progress.Percent("Collecting symbols", documents.Count);
-            foreach (var token in documents.AsParallel().Peek(symbolProgress.Increment).SelectMany(GetDocumentTokens))
-                yield return token;
-            symbolProgress.Complete();
-        }
-
-        private IEnumerable<GraphToken> GetDocumentTokens(Document document)
-        {
-            FileInfo file = document.GetFile();
-            SyntaxNode syntax = document.GetSyntax();
-            SemanticModel semantic = document.GetSemantic();
 
             HashSet<GraphKey> keys = new();
-            foreach (var token in GetDeclarationTokens(syntax, semantic, file))
+            ProgressPercentage symbolProgress = Progress.Percent("Collecting symbol declarations", documents.Count);
+            foreach (var token in documents.AsParallel().Peek(symbolProgress.Increment).SelectMany(document => GetDeclarationTokens(document)))
             {
                 yield return token;
                 if (token is GraphNodeToken nodeToken)
                     keys.Add(nodeToken.Key);
             }
-            foreach (var token in GetUsageTokens(syntax, semantic, file, keys))
+            symbolProgress.Complete();
+
+            symbolProgress = Progress.Percent("Collecting symbol references", documents.Count);
+            foreach (var token in documents.AsParallel().Peek(symbolProgress.Increment).SelectMany(document => GetUsageTokens(document, keys)))
                 yield return token;
+            symbolProgress.Complete();
         }
 
-        private IEnumerable<GraphToken> GetDeclarationTokens(SyntaxNode syntax, SemanticModel semantic, FileInfo file)
+        private IEnumerable<GraphToken> GetDeclarationTokens(Document document)
         {
-            foreach (var descendant in syntax.DescendantNodes(syntax => 
-                !(syntax is BlockSyntax && syntax.Parent is MethodDeclarationSyntax) &&
-                !(syntax is AccessorListSyntax && syntax.Parent is PropertyDeclarationSyntax)))
+            FileInfo file = document.GetFile();
+            SyntaxNode syntax = document.GetSyntax();
+            SemanticModel semantic = document.GetSemantic();
+
+            foreach (var descendant in syntax.DescendantNodes())
             {
                 if (descendant is BaseTypeDeclarationSyntax typeDeclarationSyntax)
                 {
@@ -120,8 +123,12 @@ namespace Repka.Graphs
         }
 
 
-        private IEnumerable<GraphToken> GetUsageTokens(SyntaxNode syntax, SemanticModel semantic, FileInfo file, ISet<GraphKey> scope)
+        private IEnumerable<GraphToken> GetUsageTokens(Document document, ISet<GraphKey> scope)
         {
+            FileInfo file = document.GetFile();
+            SyntaxNode syntax = document.GetSyntax();
+            SemanticModel semantic = document.GetSemantic();
+
             foreach (var linkToken in GetUsageTokens(syntax, semantic, file))
             {
                 if (scope.Contains(linkToken.SourceKey) || scope.Contains(linkToken.TargetKey))

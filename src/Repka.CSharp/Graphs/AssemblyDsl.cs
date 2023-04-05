@@ -23,6 +23,7 @@
         public static class AssemblyLabels
         {
             public const string Assembly = nameof(Assembly);
+            public const string AssemblyDependency = nameof(AssemblyDependency);
         }
     }
 }

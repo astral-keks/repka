@@ -14,6 +14,13 @@
 
         public Graph Graph { get; }
 
+        public GraphAttribute<TValue>? Attribute<TValue>()
+        {
+            return Graph.Attributes(Token)
+                .OfType<GraphAttribute<TValue>>()
+                .SingleOrDefault();
+        }
+
         public override bool Equals(object? obj)
         {
             return obj is GraphElement element &&

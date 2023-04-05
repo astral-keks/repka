@@ -4,7 +4,7 @@ namespace Repka.Frameworks
 {
     public class FrameworkProvider
     {
-        public string? Root { get; init; }
+        public List<string> Roots { get; init; } = new();
 
         public List<string> Assemblies { get; init; } = new()
         {
@@ -23,7 +23,8 @@ namespace Repka.Frameworks
 
         public FrameworkDirectory GetFrameworkDirectory()
         {
-            return new FrameworkDirectory(Root ?? RuntimeEnvironment.GetRuntimeDirectory(), Assemblies);
+            List<string> roots = Roots.Any() ? Roots : new() { RuntimeEnvironment.GetRuntimeDirectory() };
+            return new FrameworkDirectory(roots, Assemblies);
         }
     }
 }

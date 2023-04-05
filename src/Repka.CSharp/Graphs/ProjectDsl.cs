@@ -36,6 +36,12 @@ namespace Repka.Graphs
 
             public string Path => Key;
 
+            public bool HasSdk => !string.IsNullOrWhiteSpace(Sdk);
+
+            public string? Sdk => Outputs(ProjectLabels.Sdk)
+                .Select(link => link.TargetKey.ToString())
+                .FirstOrDefault();
+
             public NuGetIdentifier? PackageId => Outputs(ProjectLabels.PackageDefinition)
                 .Select(link => new NuGetIdentifier(link.TargetKey.ToString()))
                 .FirstOrDefault();
@@ -90,6 +96,7 @@ namespace Repka.Graphs
             public const string ExecutableProject = nameof(ExecutableProject);
             public const string LibraryProject = nameof(LibraryProject);
 
+            public const string Sdk = nameof(Sdk);
             public const string TargetFramework = nameof(TargetFramework);
 
             public const string PackageDefinition = nameof(PackageDefinition);

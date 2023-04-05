@@ -34,10 +34,6 @@ namespace Repka.Graphs
         private IEnumerable<GraphToken> GetPackageTokens(IEnumerable<ProjectNode> projectNodes, 
             NuGetManager packageManager, FrameworkDirectory frameworkDirectory)
         {
-            HashSet<string> targetFrameworks = projectNodes
-                .Select(projectNode => projectNode.TargetFramework)
-                .OfType<string>()
-                .ToHashSet();
             HashSet<NuGetIdentifier> packageIdsFromProjects = projectNodes
                 .Select(projectNode => projectNode.PackageId)
                 .OfType<NuGetIdentifier>()
