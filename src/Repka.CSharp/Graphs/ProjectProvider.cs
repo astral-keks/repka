@@ -6,7 +6,6 @@ using Repka.Diagnostics;
 using Repka.Frameworks;
 using Repka.Packaging;
 using Repka.Projects;
-using static Repka.Graphs.AssemblyDsl;
 using static Repka.Graphs.PackageDsl;
 using static Repka.Graphs.ProjectDsl;
 
@@ -14,30 +13,31 @@ namespace Repka.Graphs
 {
     public class ProjectProvider : GraphProvider
     {
-        public FrameworkProvider FrameworkProvider { get; init; } = new();
+        public FrameworkDefinition Framework { get; init; } = FrameworkDefinitions.Current;
 
-        public override IEnumerable<GraphToken> GetTokens(GraphKey key, Graph graph)
+        public override void AddTokens(GraphKey key, Graph graph)
         {
             DirectoryInfo directory = new(key);
             if (directory.Exists)
             {
-                FrameworkDirectory frameworkDirectory = FrameworkProvider.GetFrameworkDirectory();
-
                 List<FileInfo> projectFiles = directory.EnumerateFiles("*.csproj", SearchOption.AllDirectories).ToList();
                 ProgressPercentage projectProgress = Progress.Percent("Collecting projects", projectFiles.Count);
-                foreach (var token in projectFiles.Peek(projectProgress.Increment).SelectMany(projectFile => GetProjectTokens(projectFile, frameworkDirectory)))
-                    yield return token;
+                IEnumerable<GraphToken> tokens = projectFiles.AsParallel().WithDegreeOfParallelism(8)
+                    .Peek(projectProgress.Increment)
+                    .SelectMany(projectFile => GetProjectTokens(projectFile));
+                foreach (var token in tokens)
+                    graph.Add(token);
                 projectProgress.Complete();
 
                 List<ProjectNode> projectNodes = graph.Projects().ToList();
                 ProgressPercentage dependencyProgress = Progress.Percent("Collecting project dependencies", projectNodes.Count);
                 foreach (var token in GetDependencyTokens(projectNodes.Peek(dependencyProgress.Increment)))
-                    yield return token;
+                    graph.Add(token);
                 dependencyProgress.Complete();
             }
         }
 
-        private IEnumerable<GraphToken> GetProjectTokens(FileInfo projectFile, FrameworkDirectory frameworkDirectory)
+        private IEnumerable<GraphToken> GetProjectTokens(FileInfo projectFile)
         {
             ProjectRootElement projectElement = projectFile.ToProject();
 
@@ -93,8 +93,8 @@ namespace Repka.Graphs
                 GraphKey frameworkReferenceKey = new(frameworkReference.Name);
                 yield return new GraphLinkToken(projectKey, frameworkReferenceKey, ProjectLabels.FrameworkReference);
 
-                IEnumerable<AssemblyFile> frameworkAssemblies = frameworkDirectory.Assemblies
-                    .Append(frameworkDirectory.ResolveAssembly(frameworkReference.Name))
+                IEnumerable<AssemblyFile> frameworkAssemblies = Framework.Assemblies
+                    .Append(Framework.ResolveAssembly(frameworkReference.Name))
                     .OfType<AssemblyFile>();
                 foreach (AssemblyFile frameworkAssembly in frameworkAssemblies)
                 {

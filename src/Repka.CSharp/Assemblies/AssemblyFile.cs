@@ -6,7 +6,7 @@
 
         public AssemblyFile(string path)
         {
-            _path = path.ToLower();
+            _path = path;
         }
 
         public string Path => _path;

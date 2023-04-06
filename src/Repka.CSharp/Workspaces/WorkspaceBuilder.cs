@@ -21,7 +21,7 @@ namespace Repka.Workspaces
         }
 
         public Project AddProject(ProjectNode projectNode)
-        {
+        { 
             HashSet<ProjectNode> projectDependencies = projectNode.ProjectDependencies.Traverse().ToHashSet();
             HashSet<AssemblyFile> assemblies = projectNode.AssemblyDependencies.ToHashSet();
 
@@ -39,7 +39,7 @@ namespace Repka.Workspaces
                 .ToList();
 
             ProjectInfo projectInfo = ProjectInfo.Create(projectNode.Id, VersionStamp.Create(), projectNode.Name, projectNode.Name, LanguageNames.CSharp,
-                filePath: projectNode.Path, documents: documents, metadataReferences: metadataReferences, projectReferences: projectReferences);
+                filePath: projectNode.Location, documents: documents, metadataReferences: metadataReferences, projectReferences: projectReferences);
             Project project;
             lock (Workspace)
                 project = Workspace.AddProject(projectInfo);
@@ -51,9 +51,9 @@ namespace Repka.Workspaces
         {
             DocumentId documentId = DocumentId.CreateNewId(projectNode.Id);
             using Stream documentStream = documentNode.Read();
-            TextAndVersion documentText = TextAndVersion.Create(SourceText.From(documentStream), VersionStamp.Create(), documentNode.Path);
+            TextAndVersion documentText = TextAndVersion.Create(SourceText.From(documentStream), VersionStamp.Create(), documentNode.Location);
             DocumentInfo documentInfo = DocumentInfo.Create(documentId, documentNode.Name,
-                loader: TextLoader.From(documentText), filePath: documentNode.Path);
+                loader: TextLoader.From(documentText), filePath: documentNode.Location);
             return documentInfo;
         }
     }

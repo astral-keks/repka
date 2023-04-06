@@ -30,12 +30,12 @@ namespace Repka.Graphs
 
             public ProjectId Id => ProjectId.CreateFromSerialized(Key.GetGuid());
 
-            public string Name => System.IO.Path.GetFileNameWithoutExtension(Key);
+            public string Name => Path.GetFileNameWithoutExtension(Key);
 
-            public string Directory => System.IO.Path.GetDirectoryName(Key) 
+            public string Directory => Path.GetDirectoryName(Key) 
                 ?? throw new DirectoryNotFoundException("Project directory could not be resolved");
 
-            public string Path => Key;
+            public string Location => Key;
 
             public bool HasSdk => !string.IsNullOrWhiteSpace(Sdk);
 
@@ -47,6 +47,7 @@ namespace Repka.Graphs
                 .Select(link => link.TargetKey.ToString())
                 .FirstOrDefault();
 
+
             public NuGetIdentifier? PackageId => Outputs(ProjectLabels.PackageDefinition)
                 .Select(link => new NuGetIdentifier(link.TargetKey.ToString()))
                 .FirstOrDefault();
@@ -55,6 +56,7 @@ namespace Repka.Graphs
                 .Select(link => link.Target().AsPackage()).OfType<PackageNode>()
                 .FirstOrDefault();
 
+
             public IEnumerable<string> DocumentLinks => Outputs(ProjectLabels.DocumentLink)
                 .Select(link => link.TargetKey.ToString());
 
@@ -62,11 +64,13 @@ namespace Repka.Graphs
                 .Select(link => link.Target().AsDocument())
                 .OfType<DocumentNode>();
 
+
             public IEnumerable<string> FrameworkReferences => Outputs(ProjectLabels.FrameworkReference)
                 .Select(link => link.TargetKey.ToString());
 
             public IEnumerable<AssemblyFile> FrameworkDependencies => Outputs(ProjectLabels.FrameworkDependency)
                 .Select(link => new AssemblyFile(link.TargetKey));
+
 
             public IEnumerable<string> LibraryReferences => Outputs(ProjectLabels.LibraryReference)
                 .Select(link => link.TargetKey.ToString());
@@ -74,20 +78,26 @@ namespace Repka.Graphs
             public IEnumerable<AssemblyFile> LibraryDependencies => Outputs(ProjectLabels.LibraryReference)
                 .Select(link => new AssemblyFile(link.TargetKey.ToString()));
 
+
             public IEnumerable<string> ProjectReferences => Outputs(ProjectLabels.ProjectReference)
                 .Select(link => link.TargetKey.ToString());
-
-            public IEnumerable<NuGetDescriptor> PackageReferences => Outputs(ProjectLabels.PackageReference)
-                .Select(link => PackageKey.Parse(link.TargetKey))
-                .Select(key => NuGetDescriptor.Of(key.Id, key.Version));
 
             public GraphFragment<ProjectNode> ProjectDependencies => Outputs(ProjectLabels.ProjectDependency)
                 .Select(link => link.Target().AsProject()).OfType<ProjectNode>()
                 .ToFragment(projectNode => projectNode.ProjectDependencies);
 
+            public IEnumerable<ProjectNode> DependingProjects => Inputs(ProjectLabels.ProjectDependency)
+                .Select(link => link.Source().AsProject()).OfType<ProjectNode>();
+            
+
+            public IEnumerable<NuGetDescriptor> PackageReferences => Outputs(ProjectLabels.PackageReference)
+                .Select(link => PackageKey.Parse(link.TargetKey))
+                .Select(key => NuGetDescriptor.Of(key.Id, key.Version));
+
             public GraphFragment<PackageNode> PackageDependencies(string? targetFramework) => Outputs(PackageLabels.PackageDependency)
                 .Select(link => link.Target().AsPackage()).OfType<PackageNode>()
                 .ToFragment(packageNode => packageNode.PackageDependencies(targetFramework));
+
 
             public IEnumerable<AssemblyFile> AssemblyDependencies => Outputs(AssemblyLabels.AssemblyDependency)
                 .Select(link => new AssemblyFile(link.TargetKey.ToString()));

@@ -5,8 +5,8 @@ namespace Repka.Workspaces
 {
     internal class WorkspaceReferences
     {
-        private readonly ConcurrentDictionary<string, ICollection<MetadataReference>> _references = new();
-        private readonly ConcurrentDictionary<string, string> _unresolved = new();
+        private readonly ConcurrentDictionary<string, ICollection<MetadataReference>> _references = new(StringComparer.OrdinalIgnoreCase);
+        private readonly ConcurrentDictionary<string, string> _unresolved = new(StringComparer.OrdinalIgnoreCase);
 
         public ICollection<string> Unresolved => _unresolved.Keys;
 

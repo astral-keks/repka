@@ -1,21 +1,29 @@
-﻿using Repka.FileSystems;
+﻿using Repka.Collections;
+using Repka.FileSystems;
 
 namespace Repka.Graphs
 {
     public class FileSystemProvider : GraphProvider
     {
-        public FileSystems.FileSystem FileSystem { private get; init; } = FileSystemDefinitions.Empty();
+        public FileSystem FileSystem { private get; init; } = FileSystemDefinitions.Empty();
 
-        public override IEnumerable<GraphToken> GetTokens(GraphKey key, Graph graph)
+        public override void AddTokens(GraphKey key, Graph graph)
         {
-            FileSystemGrouping grouping = new();
             FileSystemEntry root = new(key);
 
             int i = 0;
             Progress.Start("Files and folders");
-            foreach (var entry in FileSystem.GetEntries(root))
+            foreach (var token in GetFileSystemTokens(FileSystem.GetEntries(root).Peek(() => Progress.Notify($"Files and folders: {++i}"))))
+                graph.Add(token);
+            Progress.Finish($"Files and folders: {i}");
+        }
+
+        private IEnumerable<GraphToken> GetFileSystemTokens(IEnumerable<FileSystemEntry> entries)
+        {
+            FileSystemGrouping grouping = new();
+
+            foreach (var entry in entries)
             {
-                Progress.Notify($"Files and folders: {++i}");
                 GraphKey? sourceKey = entry.Origin is not null ? new(entry.Origin) : default;
                 GraphKey targetKey = new(entry.Path);
 
@@ -44,7 +52,6 @@ namespace Repka.Graphs
                     }
                 }
             }
-            Progress.Finish($"Files and folders: {i}");
         }
 
         private GraphToken? GetNodeToken(GraphKey key, FileSystemGrouping grouping)

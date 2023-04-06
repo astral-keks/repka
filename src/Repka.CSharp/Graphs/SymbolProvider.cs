@@ -1,61 +1,39 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Repka.Caching;
 using Repka.Collections;
 using Repka.Diagnostics;
-using Repka.Workspaces;
 using System.Collections.Immutable;
-using static Repka.Graphs.ProjectDsl;
+using static Repka.Graphs.DocumentDsl;
 using static Repka.Graphs.SymbolDsl;
 
 namespace Repka.Graphs
 {
     public partial class SymbolProvider : GraphProvider
     {
-        public ReportProvider? ReportProvider { get; init; }
-
-        public override IEnumerable<GraphToken> GetTokens(GraphKey key, Graph graph)
+        public override void AddTokens(GraphKey key, Graph graph)
         {
-            WorkspaceBuilder workspaceBuilder = new();
-            workspaceBuilder.AddSolution(key);
-
-            List<ProjectNode> projectNodes = graph.Projects().ToList();
-            ProgressPercentage projectProgress = Progress.Percent("Creating workspace", projectNodes.Count);
-            projectNodes.AsParallel().Peek(projectProgress.Increment).ForAll(projectNode => workspaceBuilder.AddProject(projectNode));
-            projectProgress.Complete();
-
-            AdhocWorkspace workspace = workspaceBuilder.Workspace;
-            
-            if (ReportProvider is not null)
-            {
-                projectProgress = Progress.Percent("Collecting diagnostics", projectNodes.Count);
-                ReportProvider.Report(workspace).ForAll(_ => projectProgress.Increment());
-                projectProgress.Complete();
-            }
-
-            List<Document> documents = workspace.CurrentSolution.Projects.SelectMany(project => project.Documents).ToList();
-
             HashSet<GraphKey> keys = new();
+            List<DocumentNode> documents = graph.Documents().ToList();
             ProgressPercentage symbolProgress = Progress.Percent("Collecting symbol declarations", documents.Count);
-            foreach (var token in documents.AsParallel().Peek(symbolProgress.Increment).SelectMany(document => GetDeclarationTokens(document)))
+            foreach (var token in documents.Peek(symbolProgress.Increment).SelectMany(document => GetDeclarationTokens(document)))
             {
-                yield return token;
+                graph.Add(token);
                 if (token is GraphNodeToken nodeToken)
                     keys.Add(nodeToken.Key);
             }
             symbolProgress.Complete();
 
             symbolProgress = Progress.Percent("Collecting symbol references", documents.Count);
-            foreach (var token in documents.AsParallel().Peek(symbolProgress.Increment).SelectMany(document => GetUsageTokens(document, keys)))
-                yield return token;
+            foreach (var token in documents.Peek(symbolProgress.Increment).SelectMany(document => GetUsageTokens(document, keys)))
+                graph.Add(token);
             symbolProgress.Complete();
         }
 
-        private IEnumerable<GraphToken> GetDeclarationTokens(Document document)
+        private IEnumerable<GraphToken> GetDeclarationTokens(DocumentNode documentNode)
         {
-            FileInfo file = document.GetFile();
-            SyntaxNode syntax = document.GetSyntax();
-            SemanticModel semantic = document.GetSemantic();
+            FileInfo file = documentNode.File;
+            SyntaxNode syntax = documentNode.Syntax() ?? throw new ArgumentException($"Document {documentNode} has no syntax attribute");
+            SemanticModel semantic = documentNode.Semantic() ?? throw new ArgumentException($"Document {documentNode} has no semantic attribute"); ;
 
             foreach (var descendant in syntax.DescendantNodes())
             {
@@ -123,11 +101,11 @@ namespace Repka.Graphs
         }
 
 
-        private IEnumerable<GraphToken> GetUsageTokens(Document document, ISet<GraphKey> scope)
+        private IEnumerable<GraphToken> GetUsageTokens(DocumentNode documentNode, ISet<GraphKey> scope)
         {
-            FileInfo file = document.GetFile();
-            SyntaxNode syntax = document.GetSyntax();
-            SemanticModel semantic = document.GetSemantic();
+            FileInfo file = documentNode.File;
+            SyntaxNode syntax = documentNode.Syntax() ?? throw new ArgumentException($"Document {documentNode} has no syntax attribute");
+            SemanticModel semantic = documentNode.Semantic() ?? throw new ArgumentException($"Document {documentNode} has no semantic attribute"); ;
 
             foreach (var linkToken in GetUsageTokens(syntax, semantic, file))
             {

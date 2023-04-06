@@ -12,6 +12,10 @@
     <RootNamespace>Repka</RootNamespace>
   </PropertyGroup>
 
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="$(SolutionDir)..\build\copy &quot;$(TargetDir)*.dll&quot; &quot;$(SolutionDir)..\artifact\&quot;" />
+  </Target>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.Build" Version="17.1.0" />
     <PackageReference Include="Microsoft.Build.Framework" Version="17.1.0" />

@@ -1,5 +1,4 @@
 ﻿using Microsoft.CodeAnalysis;
-using NuGet.Frameworks;
 using NuGet.Packaging;
 using NuGet.Repositories;
 using NuGet.Versioning;
@@ -42,7 +41,7 @@ namespace Repka.Packaging
         {
             return _packageDependencies
                 .SelectMany(group => group.Packages.Any()
-                    ? group.Packages.Select(NuGetDescriptor.Of).Select(package => NuGetReference.Of(group.TargetFramework, package)).ToList()
+                    ? group.Packages.Select(package => NuGetReference.Of(group.TargetFramework, NuGetDescriptor.Of(package))).ToList()
                     : new() { NuGetReference.Of(group.TargetFramework, default(NuGetDescriptor)) })
                 .ToList();
         }
@@ -86,17 +85,24 @@ namespace Repka.Packaging
         private List<(NuGetMoniker Tfm, string? Path)> GetDlls(Regex regex)
         {
             return GetFiles()
+                .Where(path => 
+                    path.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) || 
+                    path.EndsWith("_._", StringComparison.OrdinalIgnoreCase))
                 .Select(path => regex.Match(path))
                 .Where(match => match.Success)
-                .Select(match => (
-                    Tfm: NuGetMoniker.Resolve(match.Groups[1].Value),
-                    Path: match.Value.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) ? match.Value : default))
+                .Select(match => (Tfm: NuGetMoniker.Resolve(match.Groups[1].Value), Path: match.Value))
                 .Where(dll => dll.Tfm is not null)
                 .OfType<(NuGetMoniker Tfm, string? Path)>()
                 .Select(dll =>
                 {
                     if (dll.Path is not null)
-                        dll = dll with { Path = Path.Combine(_location, dll.Path).Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar) };
+                    {
+                        dll = dll with
+                        {
+                            Path = Path.Combine(_location, dll.Path)
+                                .Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar)
+                        };
+                    }
                     return dll;
                 })
                 .ToList();

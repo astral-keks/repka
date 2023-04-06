@@ -1,6 +1,8 @@
 ﻿using Microsoft.Build.Construction;
 using Repka.Collections;
+using System.Reflection;
 using System.Text.RegularExpressions;
+using static Repka.Graphs.AssemblyDsl;
 
 namespace Repka.Projects
 {
@@ -128,7 +130,7 @@ namespace Repka.Projects
                 frameworkAssemblies.Add(FrameworkReference.Netstandard);
             return project.Items
                 .Where(item => item.ElementName == "Reference" && !item.Metadata.Any(metadata => metadata.Name == "HintPath"))
-                .Select(item => new FrameworkReference(item.Include))
+                .Select(item => new FrameworkReference(new string(item.Include.TakeWhile(ch => ch != ',').ToArray())))
                 .Concat(frameworkAssemblies);
         }
 

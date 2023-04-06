@@ -1,5 +1,4 @@
-﻿using NuGet.Packaging.Core;
-using Repka.Assemblies;
+﻿using Repka.Assemblies;
 using Repka.Collections;
 using Repka.Diagnostics;
 using Repka.Frameworks;
@@ -11,27 +10,23 @@ namespace Repka.Graphs
 {
     public class PackageProvider : GraphProvider
     {
-        public NuGetProvider NuGetProvider { get; init; } = new();
-        public FrameworkProvider FrameworkProvider { get; init; } = new();
+        public NuGetManager NuGet { get; init; } = new(".");
+        public FrameworkDefinition Framework { get; init; } = FrameworkDefinitions.Current;
 
-        public override IEnumerable<GraphToken> GetTokens(GraphKey key, Graph graph)
+        public override void AddTokens(GraphKey key, Graph graph)
         {
             DirectoryInfo directory = new(key);
             if (directory.Exists)
             {
-                NuGetManager packageManager = NuGetProvider.GetManager(directory.FullName);
-                FrameworkDirectory frameworkDirectory = FrameworkProvider.GetFrameworkDirectory();
-
                 List<ProjectNode> projectNodes = graph.Projects().ToList();
                 ProgressPercentage packageProgress = Progress.Percent("Resolving packages", projectNodes.Count);
-                foreach (var token in GetPackageTokens(projectNodes.Peek(packageProgress.Increment), packageManager, frameworkDirectory))
-                    yield return token;
+                foreach (var token in GetPackageTokens(projectNodes.Peek(packageProgress.Increment)))
+                    graph.Add(token);
                 packageProgress.Complete();
             }
         }
 
-        private IEnumerable<GraphToken> GetPackageTokens(IEnumerable<ProjectNode> projectNodes, 
-            NuGetManager packageManager, FrameworkDirectory frameworkDirectory)
+        private IEnumerable<GraphToken> GetPackageTokens(IEnumerable<ProjectNode> projectNodes)
         {
             HashSet<NuGetIdentifier> packageIdsFromProjects = projectNodes
                 .Select(projectNode => projectNode.PackageId)
@@ -49,28 +44,27 @@ namespace Repka.Graphs
 
                 IEnumerable<NuGetDescriptor> packageDependencies = projectNode.PackageReferences
                     .Where(packageReference => !packageIdsFromProjects.Contains(packageReference.Id))
-                    .Select(packageReference => packageManager.ResolvePackage(packageReference))
+                    .Select(packageReference => NuGet.ResolvePackage(packageReference))
                     .ToList();
                 foreach (var packageDependency in packageDependencies)
                 {
                     PackageKey packageDependencyKey = new(packageDependency);
                     yield return new GraphLinkToken(projectNode.Key, packageDependencyKey, PackageLabels.PackageDependency);
                     
-                    var tokens = GetPackageTokens(packageDependency, packageManager, frameworkDirectory, packageIdsFromProjects, packageTraversal);
-                    foreach (var token in tokens)
+                    foreach (var token in GetPackageTokens(packageDependency, packageIdsFromProjects, packageTraversal))
                         yield return token;
                 }
             }
         }
 
-        private ICollection<GraphToken> GetPackageTokens(NuGetDescriptor packageDescriptor, NuGetManager packageManager, FrameworkDirectory frameworkDirectory,
-            HashSet<NuGetIdentifier> packageIdsFromProjects, GraphTraversal<NuGetDescriptor, GraphToken> packageTraversal)
+        private ICollection<GraphToken> GetPackageTokens(NuGetDescriptor packageDescriptor, HashSet<NuGetIdentifier> packageIdsFromProjects, 
+            GraphTraversal<NuGetDescriptor, GraphToken> packageTraversal)
         {
             return packageTraversal.Visit(packageDescriptor, () => packageVisitor().ToList());
             
             IEnumerable<GraphToken> packageVisitor()
             {
-                NuGetPackage? package = packageManager.RestorePackage(packageDescriptor);
+                NuGetPackage? package = NuGet.RestorePackage(packageDescriptor);
                 if (package is not null)
                 {
                     PackageKey packageKey = new(package);
@@ -85,7 +79,7 @@ namespace Repka.Graphs
                         yield return new GraphLinkToken(packageKey, frameworkReference.Target ?? GraphKey.Null, PackageLabels.FrameworkReference)
                             .Label(frameworkReference.Framework.Moniker());
 
-                        AssemblyFile? frameworkAssembly = frameworkDirectory.ResolveAssembly(frameworkReference.Target);
+                        AssemblyFile? frameworkAssembly = Framework.ResolveAssembly(frameworkReference.Target);
                         yield return new GraphLinkToken(packageKey, frameworkAssembly?.Path ?? GraphKey.Null, PackageLabels.FrameworkDependency)
                             .Label(frameworkReference.Framework.Moniker());
                     }
@@ -97,7 +91,7 @@ namespace Repka.Graphs
                         PackageKey? packageDependencyKey = default;
                         if (packageReference.Target is not null && !packageIdsFromProjects.Contains(packageReference.Target.Id))
                         {
-                            NuGetDescriptor packageDependency = packageManager.DiscoverPackage(packageReference.Target);
+                            NuGetDescriptor packageDependency = NuGet.DiscoverPackage(packageReference.Target);
                             packageDependencies.Add(packageDependency);
 
                             packageReferenceKey = new(packageReference.Target);
@@ -114,9 +108,7 @@ namespace Repka.Graphs
 
                     foreach (var packageDependency in packageDependencies)
                     {
-                        var tokens = GetPackageTokens(packageDependency, packageManager, frameworkDirectory, 
-                            packageIdsFromProjects, packageTraversal);
-                        foreach (var token in tokens)
+                        foreach (var token in GetPackageTokens(packageDependency, packageIdsFromProjects, packageTraversal))
                             yield return token;
                     }
                 }

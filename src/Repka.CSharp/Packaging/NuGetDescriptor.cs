@@ -3,11 +3,14 @@ using NuGet.Versioning;
 
 namespace Repka.Packaging
 {
-    public class NuGetDescriptor
+    public class NuGetDescriptor : IComparable<NuGetDescriptor>
     {
         public static NuGetDescriptor Of(PackageDependency package)
         {
-            return Of(package.Id, package.VersionRange?.MaxVersion ?? package.VersionRange?.MinVersion);
+            VersionRange versions = package.VersionRange;
+            NuGetVersion? maxVersion = versions.IsMaxInclusive ? versions.MaxVersion : default;
+            NuGetVersion? minVersion = versions.IsMinInclusive ? versions.MinVersion : default;
+            return Of(package.Id, maxVersion ?? minVersion);
         }
 
         public static NuGetDescriptor Of((string Id, string? Version) package)
@@ -52,6 +55,11 @@ namespace Repka.Packaging
         public override int GetHashCode()
         {
             return HashCode.Combine(Id, Version);
+        }
+
+        public int CompareTo(NuGetDescriptor? other)
+        {
+            return string.Compare(ToString(), other?.ToString(), StringComparison.OrdinalIgnoreCase);
         }
 
         public override string ToString()

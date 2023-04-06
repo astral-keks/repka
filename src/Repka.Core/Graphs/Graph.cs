@@ -6,7 +6,7 @@ namespace Repka.Graphs
     {
         private readonly GraphDictionary<GraphKey, GraphNodeToken> _nodes = new(nodeToken => nodeToken.Keys);
         private readonly GraphDictionary<GraphKey, GraphLinkToken> _links = new(linkToken => linkToken.Keys);
-        private readonly GraphDictionary<GraphToken, GraphAttribute> _attributes = new(attribute => attribute.Owner);
+        private readonly GraphDictionary<GraphKey, GraphAttribute> _attributes = new(attribute => attribute.Key);
 
         public void Add(GraphToken token)
         {
@@ -20,6 +20,11 @@ namespace Repka.Graphs
                 _links.Add(linkToken);
                 _links.Find(linkToken)?.Label(linkToken.Labels);
             }
+        }
+
+        public void Add(GraphAttribute attribute)
+        {
+            _attributes.Add(attribute);
         }
 
         public bool Contains(GraphToken token)
@@ -80,14 +85,9 @@ namespace Repka.Graphs
                 .Where(link => link.Labels.ContainsAll(labels));
         }
 
-        public void Set(GraphAttribute attribute)
+        public IEnumerable<GraphAttribute> Attributes(GraphKey key)
         {
-            _attributes.Add(attribute);
-        }
-
-        public IEnumerable<GraphAttribute> Attributes(GraphToken referer)
-        {
-            return _attributes.FindAll(referer);
+            return _attributes.FindAll(key);
         }
     }
 }

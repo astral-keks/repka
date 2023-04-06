@@ -14,13 +14,6 @@
 
         public Graph Graph { get; }
 
-        public GraphAttribute<TValue>? Attribute<TValue>()
-        {
-            return Graph.Attributes(Token)
-                .OfType<GraphAttribute<TValue>>()
-                .SingleOrDefault();
-        }
-
         public static bool operator ==(GraphElement? left, GraphElement? right) => Equals(left, right);
 
         public static bool operator !=(GraphElement? left, GraphElement? right) => !Equals(left, right);

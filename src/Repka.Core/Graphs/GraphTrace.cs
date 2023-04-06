@@ -3,7 +3,7 @@ using System.Collections.Immutable;
 
 namespace Repka.Graphs
 {
-    public class GraphTrace : IEnumerable<GraphLink>
+    public class GraphTrace : IEnumerable<GraphLink>, IComparable<GraphTrace>
     {
         private readonly ImmutableList<GraphLink> _reversedLinks;
 
@@ -31,6 +31,11 @@ namespace Repka.Graphs
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();
+        }
+
+        public int CompareTo(GraphTrace? other)
+        {
+            return Length.CompareTo(other?.Length ?? 0);
         }
     }
 }

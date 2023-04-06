@@ -1,4 +1,7 @@
-﻿using NuGet.Packaging;
+﻿using NuGet.Common;
+using NuGet.Configuration;
+using NuGet.Packaging;
+using NuGet.Packaging.Signing;
 using NuGet.Protocol.Core.Types;
 using NuGet.Repositories;
 using NuGet.Versioning;
@@ -15,18 +18,24 @@ namespace Repka.Packaging
         private readonly PackageExtractionContext _extractionContext;
         private readonly NuGetContext _directoryContext;
 
-        internal NuGetManager(NuGetv3LocalRepository localRepository, SourceRepositoryProvider repositoryProvider, 
-            NuGetOverrides packageOverrides, VersionFolderPathResolver pathResolver, 
-            SourceCacheContext cacheContext, PackageExtractionContext extractionContext, 
-            NuGetContext directoryContext)
+        public NuGetManager(string root)
         {
-            _localRepository = localRepository;
-            _repositoryProvider = repositoryProvider;
-            _cacheContext = cacheContext;
-            _pathResolver = pathResolver;
-            _extractionContext = extractionContext;
-            _directoryContext = directoryContext;
-            _packageOverrides = packageOverrides;
+            ISettings settings = Settings.LoadDefaultSettings(root);
+            string packagesFolder = SettingsUtility.GetGlobalPackagesFolder(settings);
+
+            _localRepository = new NuGetv3LocalRepository(packagesFolder);
+
+            PackageSourceProvider sourceProvider = new(settings);
+            _repositoryProvider = new SourceRepositoryProvider(sourceProvider, Repository.Provider.GetCoreV3());
+
+            _cacheContext = new();
+            _pathResolver = new VersionFolderPathResolver(packagesFolder);
+            _packageOverrides = NuGetOverrides.Load(new DirectoryInfo(root));
+
+            ClientPolicyContext clientPolicyContext = ClientPolicyContext.GetClientPolicy(settings, NullLogger.Instance);
+            _extractionContext = new(PackageSaveMode.Defaultv3, XmlDocFileSaveMode.Skip, clientPolicyContext, NullLogger.Instance);
+
+            _directoryContext = new NuGetContext();
         }
 
         public NuGetDescriptor ResolvePackage(NuGetDescriptor packageDescriptor)

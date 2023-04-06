@@ -1,6 +1,7 @@
 ﻿using Repka.Assemblies;
 using Repka.Collections;
 using Repka.Diagnostics;
+using Repka.Frameworks;
 using static Repka.Graphs.AssemblyDsl;
 using static Repka.Graphs.PackageDsl;
 using static Repka.Graphs.ProjectDsl;
@@ -9,12 +10,14 @@ namespace Repka.Graphs
 {
     public class AssemblyProvider : GraphProvider
     {
-        public override IEnumerable<GraphToken> GetTokens(GraphKey key, Graph graph)
+        public FrameworkDefinition Framework { get; init; } = FrameworkDefinitions.Current;
+
+        public override void AddTokens(GraphKey key, Graph graph)
         {
             List<ProjectNode> projectNodes = graph.Projects().ToList();
             ProgressPercentage packageProgress = Progress.Percent("Resolving assemblies", projectNodes.Count);
             foreach (var token in GetAssemblyTokens(projectNodes.Peek(packageProgress.Increment)))
-                yield return token;
+                graph.Add(token);
             packageProgress.Complete();
         }
 
@@ -48,7 +51,7 @@ namespace Repka.Graphs
 
         private HashSet<AssemblyFile> GetPackageAssemblies(ProjectNode projectNode, List<ProjectNode> projectDependencies)
         {
-            string? targetFramework = projectNode.TargetFramework;
+            string? targetFramework = Framework.Moniker;
 
             List<PackageNode> packageDependencies = projectDependencies.Prepend(projectNode)
                 .SelectMany(projectNode => projectNode.PackageDependencies(targetFramework).Traverse())

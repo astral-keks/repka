@@ -28,6 +28,16 @@
                 _progress.Notify($"{_title}: {Value}%");
         }
 
+        public void Set(int value)
+        {
+            int current = Value;
+            _value = value;
+            if (_value > _total)
+                _value %= _total;
+            if (Value != current)
+                _progress.Notify($"{_title}: {Value}%");
+        }
+
         public void Complete()
         {
             _progress.Finish($"{_title}: {Value}%");

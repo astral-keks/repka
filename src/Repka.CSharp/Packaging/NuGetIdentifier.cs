@@ -1,6 +1,6 @@
 ﻿namespace Repka.Packaging
 {
-    public class NuGetIdentifier
+    public class NuGetIdentifier : IComparable<NuGetIdentifier>
     {
         private readonly string _value;
 
@@ -24,6 +24,11 @@
         public override int GetHashCode()
         {
             return HashCode.Combine(_value.ToLower());
+        }
+
+        public int CompareTo(NuGetIdentifier? other)
+        {
+            return string.Compare(_value, other?._value, StringComparison.OrdinalIgnoreCase);
         }
 
         public override string ToString()

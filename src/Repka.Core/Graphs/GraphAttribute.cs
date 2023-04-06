@@ -2,43 +2,40 @@
 {
     public abstract class GraphAttribute
     {
-        private readonly Type _type;
-        private readonly GraphToken _owner;
-        private readonly Lazy<object?> _lazy;
+        private readonly GraphKey _key;
+        private readonly Type _valueType;
+        private readonly Lazy<object?> _valueLazy;
 
-        protected GraphAttribute(Type type, GraphToken owner, Func<object?> factory)
+        public static GraphAttribute<TValue> Of<TValue>(GraphKey key, Func<TValue?> factory) => new(key, factory);
+
+        protected GraphAttribute(GraphKey key, Type type, Func<object?> factory)
         {
-            _type = type;
-            _owner = owner;
-            _lazy = new(factory);
+            _key = key;
+            _valueType = type;
+            _valueLazy = new(factory);
         }
 
-        public GraphToken Owner => _owner;
+        public GraphKey Key => _key;
 
-        public object? Value => _lazy.Value;
+        public object? Value => _valueLazy.Value;
 
         public override bool Equals(object? obj)
         {
             return obj is GraphAttribute value &&
-                   EqualityComparer<Type>.Default.Equals(_type, value._type) &&
-                   EqualityComparer<GraphToken>.Default.Equals(_owner, value._owner);
+                   Equals(_key, value._key) &&
+                   Equals(_valueType, value._valueType);
         }
 
         public override int GetHashCode()
         {
-            return HashCode.Combine(_type, _owner);
+            return HashCode.Combine(_valueType, _key);
         }
     }
 
     public class GraphAttribute<TValue> : GraphAttribute
     {
-        public GraphAttribute(GraphToken owner, TValue value)
-            : this(owner, () => value)
-        {
-        }
-
-        public GraphAttribute(GraphToken owner, Func<TValue?> factory)
-            : base(typeof(TValue), owner, () => factory())
+        public GraphAttribute(GraphKey key, Func<TValue?> factory)
+            : base(key, typeof(TValue), () => factory())
         {
         }
 

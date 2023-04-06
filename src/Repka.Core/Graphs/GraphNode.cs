@@ -1,6 +1,6 @@
 ﻿namespace Repka.Graphs
 {
-    public class GraphNode : GraphElement
+    public class GraphNode : GraphElement, IComparable<GraphNode>
     {
         private readonly GraphNodeToken _token;
 
@@ -16,6 +16,14 @@
         }
 
         public GraphKey Key => _token.Key;
+
+        public TAttribute? Attribute<TAttribute>()
+            where TAttribute : GraphAttribute
+        {
+            return Graph.Attributes(Key)
+                .OfType<TAttribute>()
+                .SingleOrDefault();
+        }
 
         public IEnumerable<GraphNode> Siblings(GraphLabel subject)
         {
@@ -58,6 +66,11 @@
         {
             return Graph.Links(Key, labels)
                 .Where(link => link.SourceKey == Key);
+        }
+
+        public int CompareTo(GraphNode? other)
+        {
+            return Key.CompareTo(other?.Key);
         }
     }
 }

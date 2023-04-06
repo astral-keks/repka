@@ -39,13 +39,6 @@ namespace Repka.Graphs
                 .Select(link => link.Source().AsProject()).OfType<ProjectNode>()
                 .FirstOrDefault();
 
-            public IEnumerable<ProjectNode> ReferencingProjects => Inputs(ProjectLabels.ProjectReference)
-                .Select(link => link.Source().AsProject()).OfType<ProjectNode>();
-
-            public IEnumerable<PackageNode> ReferencingPackages(string? targetFramework) => Inputs(PackageLabels.PackageDependency)
-                .GroupByTargetFramework().SelectNearest(targetFramework)
-                .Select(link => link.Source().AsPackage()).OfType<PackageNode>();
-
             public IEnumerable<AssemblyFile> Assemblies(string? targetFramework) => Outputs(PackageLabels.PackageAssembly)
                 .GroupByTargetFramework().SelectNearest(targetFramework)
                 .Select(link => new AssemblyFile(link.TargetKey));
@@ -58,6 +51,15 @@ namespace Repka.Graphs
                 .GroupByTargetFramework().SelectNearest(targetFramework)
                 .Select(link => link.Target().AsPackage()).OfType<PackageNode>()
                 .ToFragment(packageVersionNode => packageVersionNode.PackageDependencies(targetFramework));
+
+
+            public IEnumerable<ProjectNode> DependingProjects => Inputs(PackageLabels.PackageDependency)
+                .Select(link => link.Source().AsProject()).OfType<ProjectNode>();
+
+            public IEnumerable<PackageNode> DependingPackages(string? targetFramework) => Inputs(PackageLabels.PackageDependency)
+                .GroupByTargetFramework().SelectNearest(targetFramework)
+                .Select(link => link.Source().AsPackage()).OfType<PackageNode>();
+
         }
 
         public class PackageKey : GraphKey
@@ -123,7 +125,10 @@ namespace Repka.Graphs
             public IEnumerable<GraphLink> SelectNearest(string? targetFramework)
             {
                 NuGetFramework targetNugetFramework = NuGetMoniker.Resolve(targetFramework)?.Framework ?? NuGetFramework.AnyFramework;
-                return _table.GetNearest(targetNugetFramework).FirstOrDefault().Moniker().ToOptional()
+                NuGetFramework? nearestNugetFramework = !_frameworks.Contains(NuGetFramework.AnyFramework)
+                    ? _table.GetNearest(targetNugetFramework).FirstOrDefault()
+                    : NuGetFramework.AnyFramework;
+                return nearestNugetFramework.Moniker().ToOptional()
                     .SelectMany(nearestMoniker => _links.Where(link => link.Labels.ContainsAny(nearestMoniker)));
             }
         }

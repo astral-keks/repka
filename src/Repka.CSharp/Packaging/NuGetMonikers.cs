@@ -43,6 +43,7 @@ namespace Repka.Packaging
         public static readonly NuGetMoniker Net50 = new("net50");
         public static readonly NuGetMoniker Net60 = new("net60");
         public static readonly NuGetMoniker Net70 = new("net70");
+        public static readonly NuGetMoniker Any = new("any");
         public static readonly NuGetMoniker[] All =
         {
             NetCoreApp10,
@@ -78,7 +79,8 @@ namespace Repka.Packaging
             Net48,
             Net50,
             Net60,
-            Net70
+            Net70,
+            Any
         };
 
         public static readonly NuGetFramework[] AllFrameworks = All.Select(moniker => moniker.Framework).ToArray();

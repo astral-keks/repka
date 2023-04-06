@@ -13,12 +13,16 @@ namespace Repka.Workspaces
                 string aux = FileSystemPaths.Aux(workspace.CurrentSolution.FilePath);
                 using (ReportWriter diagrnosticsWriter = provider.GetWriter(aux, "diagnostics"))
                 {
-                    foreach (var project in workspace.CurrentSolution.Projects)
+                    IEnumerable<(Project, Report)> reports = workspace.CurrentSolution.Projects
+                        .OrderBy(project => project.FilePath)
+                        .AsParallel().WithDegreeOfParallelism(8)
+                        .Select(project => (project, project.ToReport(inspector ?? WorkspaceInspector.Default)));
+                    foreach (var (project, report) in reports)
                     {
-                        diagrnosticsWriter.Write(project.ToReport(inspector ?? WorkspaceInspector.Default));
+                        if (report.Records.Any())
+                            diagrnosticsWriter.Write(report);
                         yield return project;
                     }
-                    
                 }
             }
         }
@@ -26,7 +30,7 @@ namespace Repka.Workspaces
         public static Report ToReport(this Project project, WorkspaceInspector? inspector = default) => new()
         {
             Text = $"Project {project.Name} at {project.FilePath}",
-            Records = project.Documents
+            Records = project.Documents.OrderBy(document => document.FilePath)
                 .Select(document => document.ToReport(inspector))
                 .Where(report => report.Records.Any())
                 .ToList()
@@ -34,11 +38,11 @@ namespace Repka.Workspaces
 
         private static Report ToReport(this Document document, WorkspaceInspector? inspector = default)
         {
-            SemanticModel? semantic = document.GetSemanticModelAsync().GetAwaiter().GetResult();
+            SemanticModel semantic = document.GetSemantic();
             return new Report()
             {
                 Text = document.FilePath ?? document.Name,
-                Records = (semantic?.GetDiagnostics() ?? Enumerable.Empty<Diagnostic>())
+                Records = semantic.GetDiagnostics()
                     .Where(diagnostic => inspector is null || inspector.Value.IsRelevantDiagnostic(diagnostic))
                     .Select(diagnostic => diagnostic.ToReport())
                     .ToList()

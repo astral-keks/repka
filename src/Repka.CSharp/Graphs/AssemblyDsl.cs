@@ -18,9 +18,9 @@ namespace Repka.Graphs
         {
             internal AssemblyNode(GraphNode node) : base(node) { }
 
-            public string Name => System.IO.Path.GetFileNameWithoutExtension(Path);
+            public string Name => Path.GetFileNameWithoutExtension(Location);
 
-            public string Path => Key;
+            public string Location => Key;
 
             public PackageNode? Package => Inputs(PackageLabels.PackageAssembly)
                 .Select(link => link.Source().AsPackage()).OfType<PackageNode>()
