@@ -63,7 +63,9 @@ namespace Repka.Graphs
             HashSet<AssemblyDescriptor> packageAssemblies = packageDependencies
                 .SelectMany(packageNode => Enumerable.Concat(
                     packageNode.Assemblies(targetFramework),
-                    packageNode.FrameworkDependencies(targetFramework)))
+                    packageNode.FrameworkReferences(targetFramework)
+                        .Select(frameworkReference => Framework.Resolver.FindAssembly(frameworkReference.AssemblyName))
+                        .OfType<AssemblyDescriptor>()))
                 .ToHashSet();
 
             return packageAssemblies;

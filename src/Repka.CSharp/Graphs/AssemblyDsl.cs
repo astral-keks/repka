@@ -26,13 +26,6 @@ namespace Repka.Graphs
                 .Select(link => link.Source().AsPackage()).OfType<PackageNode>()
                 .SingleOrDefault();
 
-            public IEnumerable<PackageNode> ReferencingPackages => Inputs(PackageLabels.FrameworkDependency)
-                .Select(link => link.Source().AsPackage()).OfType<PackageNode>();
-
-            public IEnumerable<GraphNode> ReferencingProjects => Inputs()
-                .Where(link => link.Labels.ContainsAny(ProjectLabels.LibraryReference, ProjectLabels.FrameworkDependency))
-                .Select(link => link.Source()).OfType<GraphNode>();
-
             public IEnumerable<GraphNode> DependingProjects => Inputs(AssemblyLabels.AssemblyDependency)
                 .Select(link => link.Source()).OfType<GraphNode>();
         }

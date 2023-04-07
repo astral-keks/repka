@@ -1,6 +1,7 @@
 ﻿using Microsoft.CodeAnalysis;
 using Repka.Diagnostics;
 using Repka.FileSystems;
+using System.Collections.Immutable;
 
 namespace Repka.Workspaces
 {
@@ -13,12 +14,9 @@ namespace Repka.Workspaces
                 string aux = FileSystemPaths.Aux(workspace.CurrentSolution.FilePath);
                 using (ReportWriter diagrnosticsWriter = provider.GetWriter(aux, "diagnostics"))
                 {
-                    IEnumerable<(Project, Report)> reports = workspace.CurrentSolution.Projects
-                        .OrderBy(project => project.FilePath)
-                        .AsParallel().WithDegreeOfParallelism(8)
-                        .Select(project => (project, project.ToReport(inspector ?? WorkspaceInspector.Default)));
-                    foreach (var (project, report) in reports)
+                    foreach (var project in workspace.CurrentSolution.Projects.OrderBy(project => project.FilePath))
                     {
+                        Report report = project.ToReport(inspector ?? WorkspaceInspector.Default);
                         if (report.Records.Any())
                             diagrnosticsWriter.Write(report);
                         yield return project;
@@ -27,23 +25,26 @@ namespace Repka.Workspaces
             }
         }
 
-        public static Report ToReport(this Project project, WorkspaceInspector? inspector = default) => new()
+        private static Report ToReport(this Project project, WorkspaceInspector? inspector = default) => new()
         {
             Text = $"Project {project.Name} at {project.FilePath}",
-            Records = project.Documents.OrderBy(document => document.FilePath)
+            Records = project.Documents
                 .Select(document => document.ToReport(inspector))
                 .Where(report => report.Records.Any())
+                .ToList()
         };
 
         private static Report ToReport(this Document document, WorkspaceInspector? inspector = default)
         {
             SemanticModel semantic = document.GetSemantic();
+            ImmutableArray<Diagnostic> diagnostics = semantic.GetDiagnostics();
             return new Report()
             {
                 Text = document.FilePath ?? document.Name,
-                Records = semantic.GetDiagnostics()
+                Records = diagnostics
                     .Where(diagnostic => inspector is null || inspector.Value.IsRelevantDiagnostic(diagnostic))
                     .Select(diagnostic => diagnostic.ToReport())
+                    .ToList()
             };
         }
 

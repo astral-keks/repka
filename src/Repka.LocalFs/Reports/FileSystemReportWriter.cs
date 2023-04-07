@@ -13,6 +13,7 @@
         {
             lock(_writer)
                 Write(report, 0);
+            _writer.Flush();
         }
 
         private void Write(Report report, int indent)

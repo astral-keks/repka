@@ -70,9 +70,6 @@ namespace Repka.Graphs
             public IEnumerable<string> FrameworkReferences => Outputs(ProjectLabels.FrameworkReference)
                 .Select(link => link.TargetKey.ToString());
 
-            public IEnumerable<AssemblyDescriptor> FrameworkDependencies => Outputs(ProjectLabels.FrameworkDependency)
-                .Select(link => new AssemblyDescriptor(link.TargetKey));
-
 
             public IEnumerable<string> LibraryReferences => Outputs(ProjectLabels.LibraryReference)
                 .Select(link => link.TargetKey.ToString());
@@ -118,17 +115,15 @@ namespace Repka.Graphs
             public const string PackageDefinition = nameof(PackageDefinition);
 
             public const string FrameworkReference = nameof(FrameworkReference);
-            public const string FrameworkDependency = nameof(FrameworkDependency);
 
             public const string LibraryReference = nameof(LibraryReference);
 
             public const string ProjectReference = nameof(ProjectReference);
             public const string ProjectDependency = nameof(ProjectDependency);
-
+            
             public const string PackageReference = nameof(PackageReference);
 
             public const string DocumentReference = nameof(DocumentReference);
-
         }
     }
 }

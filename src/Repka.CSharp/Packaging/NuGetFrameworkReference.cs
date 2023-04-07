@@ -4,12 +4,12 @@ namespace Repka.Packaging
 {
     public class NuGetFrameworkReference : NuGetAsset
     {
-        public NuGetFrameworkReference(string? name, NuGetFramework framework) 
+        public NuGetFrameworkReference(string? assemblyName, NuGetFramework framework) 
             : base(framework)
         {
-            Name = name;
+            AssemblyName = assemblyName;
         }
 
-        public string? Name { get; }
+        public string? AssemblyName { get; }
     }
 }

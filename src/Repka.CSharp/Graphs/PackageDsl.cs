@@ -41,15 +41,15 @@ namespace Repka.Graphs
 
             public IEnumerable<AssemblyDescriptor> Assemblies(string? targetFramework) => Outputs(PackageLabels.PackageAssembly)
                 .GroupByTargetFramework().SelectNearest(targetFramework)
-                .Select(link => new AssemblyDescriptor(link.TargetKey));
+                .Select(nearest => new AssemblyDescriptor(nearest.Link.TargetKey));
 
-            public IEnumerable<AssemblyDescriptor> FrameworkDependencies(string? targetFramework) => Outputs(PackageLabels.FrameworkDependency)
+            public IEnumerable<NuGetFrameworkReference> FrameworkReferences(string? targetFramework) => Outputs(PackageLabels.FrameworkReference)
                 .GroupByTargetFramework().SelectNearest(targetFramework)
-                .Select(link => new AssemblyDescriptor(link.TargetKey));
+                .Select(nearest => new NuGetFrameworkReference(nearest.Link.TargetKey, nearest.Framework));
 
             public GraphFragment<PackageNode> PackageDependencies(string? targetFramework) => Outputs(PackageLabels.PackageDependency)
                 .GroupByTargetFramework().SelectNearest(targetFramework)
-                .Select(link => link.Target().AsPackage()).OfType<PackageNode>()
+                .Select(nearest => nearest.Link.Target().AsPackage()).OfType<PackageNode>()
                 .ToFragment(packageVersionNode => packageVersionNode.PackageDependencies(targetFramework));
 
 
@@ -58,7 +58,7 @@ namespace Repka.Graphs
 
             public IEnumerable<PackageNode> DependingPackages(string? targetFramework) => Inputs(PackageLabels.PackageDependency)
                 .GroupByTargetFramework().SelectNearest(targetFramework)
-                .Select(link => link.Source().AsPackage()).OfType<PackageNode>();
+                .Select(nearest => nearest.Link.Source().AsPackage()).OfType<PackageNode>();
 
         }
 
@@ -117,14 +117,21 @@ namespace Repka.Graphs
                 _table = new(_frameworks);
             }
 
-            public IEnumerable<GraphLink> SelectNearest(string? targetFramework)
+            public IEnumerable<(GraphLink Link, NuGetFramework Framework)> SelectNearest(string? targetFramework)
             {
                 NuGetFramework targetNugetFramework = NuGetMoniker.Resolve(targetFramework)?.Framework ?? NuGetFramework.AnyFramework;
                 NuGetFramework? nearestNugetFramework = !_frameworks.Contains(NuGetFramework.AnyFramework)
                     ? _table.GetNearest(targetNugetFramework).FirstOrDefault()
                     : NuGetFramework.AnyFramework;
-                return nearestNugetFramework.ToMoniker().ToOptional()
-                    .SelectMany(nearestMoniker => _links.Where(link => link.Labels.ContainsAny(nearestMoniker)));
+                return nearestNugetFramework.ToOptional()
+                    .FlatMap(framework => framework.ToMoniker().ToOptional().Map(moniker => (framework, moniker)))
+                    .SelectMany(nearest =>
+                    {
+                        (NuGetFramework framework, string moniker) = nearest;
+                        return _links
+                            .Where(link => link.Labels.ContainsAny(moniker))
+                            .Select(link => (link, framework));
+                    });
             }
         }
 
@@ -134,9 +141,7 @@ namespace Repka.Graphs
             public const string PackageAssembly = nameof(PackageAssembly);
             public const string PackageReference = nameof(PackageReference);
             public const string PackageDependency = nameof(PackageDependency);
-
             public const string FrameworkReference = nameof(FrameworkReference);
-            public const string FrameworkDependency = nameof(FrameworkDependency);
         }
     }
 }

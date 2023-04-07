@@ -11,7 +11,6 @@ namespace Repka.Graphs
     public class PackageProvider : GraphProvider
     {
         public NuGetManager NuGet { get; init; } = new(".");
-        public FrameworkDefinition Framework { get; init; } = FrameworkDefinitions.Current;
 
         public override void AddTokens(GraphKey key, Graph graph)
         {
@@ -76,11 +75,7 @@ namespace Repka.Graphs
 
                     foreach (var frameworkReference in package.FrameworkReferences)
                     {
-                        yield return new GraphLinkToken(packageKey, frameworkReference.Name ?? GraphKey.Null, PackageLabels.FrameworkReference)
-                            .Label(frameworkReference.Framework.ToMoniker());
-
-                        AssemblyDescriptor? frameworkAssembly = Framework.Resolver.FindAssembly(frameworkReference.Name);
-                        yield return new GraphLinkToken(packageKey, frameworkAssembly?.Location ?? GraphKey.Null, PackageLabels.FrameworkDependency)
+                        yield return new GraphLinkToken(packageKey, frameworkReference.AssemblyName ?? GraphKey.Null, PackageLabels.FrameworkReference)
                             .Label(frameworkReference.Framework.ToMoniker());
                     }
 
