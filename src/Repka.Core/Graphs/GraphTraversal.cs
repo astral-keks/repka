@@ -1,4 +1,6 @@
-﻿namespace Repka.Graphs
+﻿using System.Collections.Concurrent;
+
+namespace Repka.Graphs
 {
     public class GraphTraversal<TElement> : GraphTraversal<TElement, TElement>
         where TElement : notnull
@@ -8,8 +10,8 @@
     public class GraphTraversal<TSource, TResult>
         where TSource : notnull
     {
-        private readonly Dictionary<TSource, ICollection<TResult>?> _history = new();
-        private readonly HashSet<TSource> _visiting = new();
+        private readonly ConcurrentDictionary<TSource, ICollection<TResult>?> _history = new();
+        private readonly ConcurrentDictionary<TSource, TSource> _visiting = new();
 
         public GraphTraversalStrategy Strategy { get; init; } = GraphTraversalStrategy.RecallHistory;
 
@@ -28,7 +30,7 @@
         {
             ICollection<TResult>? results = default;
 
-            if (_visiting.Add(element))
+            if (_visiting.TryAdd(element, element))
             {
                 try
                 {
@@ -42,7 +44,7 @@
                 }
                 finally
                 {
-                    _visiting.Remove(element);
+                    _visiting.TryRemove(element, out _);
                 }
             }
 

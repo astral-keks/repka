@@ -16,40 +16,41 @@ namespace Repka.Graphs
         {
             List<ProjectNode> projectNodes = graph.Projects().ToList();
             ProgressPercentage packageProgress = Progress.Percent("Resolving assemblies", projectNodes.Count);
-            foreach (var token in GetAssemblyTokens(projectNodes.Peek(packageProgress.Increment)))
+            IEnumerable<GraphToken> tokens = projectNodes.AsParallel(8)
+                .Peek(packageProgress.Increment)
+                .SelectMany(projectNode => GetAssemblyTokens(projectNode))
+                .ToList();
+            foreach (var token in tokens)
                 graph.Add(token);
             packageProgress.Complete();
         }
 
-        private IEnumerable<GraphToken> GetAssemblyTokens(IEnumerable<ProjectNode> projectNodes)
+        private IEnumerable<GraphToken> GetAssemblyTokens(ProjectNode projectNode)
         {
-            foreach (ProjectNode projectNode in projectNodes) 
-            {
-                List<ProjectNode> projectDependencies = projectNode.ProjectDependencies.Traverse().ToList();
-                HashSet<AssemblyDescriptor> projectAssemblies = GetProjectAssemblies(projectNode, projectDependencies);
-                HashSet<AssemblyDescriptor> packageAssemblies = GetPackageAssemblies(projectNode, projectDependencies);
+            List<ProjectNode> projectDependencies = projectNode.ProjectDependencies.Traverse().ToList();
+            List<AssemblyDescriptor> projectAssemblies = GetProjectAssemblies(projectNode, projectDependencies);
+            List<AssemblyDescriptor> packageAssemblies = GetPackageAssemblies(projectNode, projectDependencies);
 
-                foreach (var assembly in projectAssemblies.Union(packageAssemblies))
-                {
-                    GraphKey assemblyKey = new(assembly.Location);
-                    yield return new GraphNodeToken(assemblyKey, AssemblyLabels.Assembly);
-                    yield return new GraphLinkToken(projectNode.Key, assemblyKey, AssemblyLabels.Assembly);
-                }
+            foreach (var assembly in projectAssemblies.Union(packageAssemblies))
+            {
+                GraphKey assemblyKey = new(assembly.Location);
+                yield return new GraphNodeToken(assemblyKey, AssemblyLabels.Assembly);
+                yield return new GraphLinkToken(projectNode.Key, assemblyKey, AssemblyLabels.Assembly);
             }
         }
 
-        private HashSet<AssemblyDescriptor> GetProjectAssemblies(ProjectNode projectNode, List<ProjectNode> projectDependencies)
+        private List<AssemblyDescriptor> GetProjectAssemblies(ProjectNode projectNode, List<ProjectNode> projectDependencies)
         {
-            HashSet<AssemblyDescriptor> projectAssemblies = projectDependencies.Prepend(projectNode)
+            List<AssemblyDescriptor> projectAssemblies = projectDependencies.Prepend(projectNode)
                 .SelectMany(projectNode => Framework.Assemblies
                     .Concat(projectNode.FrameworkReferences.Select(Framework.Resolver.FindAssembly).OfType<AssemblyDescriptor>())
                     .Concat(projectNode.LibraryDependencies))
-                .ToHashSet();
+                .ToList();
 
             return projectAssemblies;
         }
 
-        private HashSet<AssemblyDescriptor> GetPackageAssemblies(ProjectNode projectNode, List<ProjectNode> projectDependencies)
+        private List<AssemblyDescriptor> GetPackageAssemblies(ProjectNode projectNode, List<ProjectNode> projectDependencies)
         {
             string? targetFramework = Framework.Moniker;
 
@@ -60,13 +61,13 @@ namespace Repka.Graphs
                 .Select(packageGroup => packageGroup.MaxBy(packageNode => packageNode.Version))
                 .OfType<PackageNode>()
                 .ToList();
-            HashSet<AssemblyDescriptor> packageAssemblies = packageDependencies
+            List<AssemblyDescriptor> packageAssemblies = packageDependencies
                 .SelectMany(packageNode => Enumerable.Concat(
                     packageNode.Assemblies(targetFramework),
                     packageNode.FrameworkReferences(targetFramework)
                         .Select(frameworkReference => Framework.Resolver.FindAssembly(frameworkReference.AssemblyName))
                         .OfType<AssemblyDescriptor>()))
-                .ToHashSet();
+                .ToList();
 
             return packageAssemblies;
         }

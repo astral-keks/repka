@@ -1,6 +1,6 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
-using Repka.Assemblies;
+using Repka.Collections;
 using Repka.FileSystems;
 using Repka.Graphs;
 using static Repka.Graphs.DocumentDsl;
@@ -31,7 +31,7 @@ namespace Repka.Workspaces
                 .SelectMany(assemblyFile => References.GetOrAdd(assemblyFile.Location, () => MetadataReference.CreateFromFile(assemblyFile.Location)))
                 .ToList();
 
-            List<DocumentInfo> documents = projectNode.Documents
+            List<DocumentInfo> documents = projectNode.Documents.AsParallel()
                 .Select(documentNode => AddDocument(documentNode, projectNode))
                 .ToList();
 

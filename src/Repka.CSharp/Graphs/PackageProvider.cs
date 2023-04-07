@@ -1,7 +1,5 @@
-﻿using Repka.Assemblies;
-using Repka.Collections;
+﻿using Repka.Collections;
 using Repka.Diagnostics;
-using Repka.Frameworks;
 using Repka.Packaging;
 using static Repka.Graphs.PackageDsl;
 using static Repka.Graphs.ProjectDsl;
@@ -18,41 +16,42 @@ namespace Repka.Graphs
             if (directory.Exists)
             {
                 List<ProjectNode> projectNodes = graph.Projects().ToList();
+                HashSet<NuGetIdentifier> packageIdsFromProjects = projectNodes
+                    .Select(projectNode => projectNode.PackageId)
+                    .OfType<NuGetIdentifier>()
+                    .ToHashSet();
+                GraphTraversal<NuGetDescriptor, GraphToken> packageTraversal = new() { Strategy = GraphTraversalStrategy.BypassHistory };
                 ProgressPercentage packageProgress = Progress.Percent("Resolving packages", projectNodes.Count);
-                foreach (var token in GetPackageTokens(projectNodes.Peek(packageProgress.Increment)))
+                IEnumerable<GraphToken> packageTokens = projectNodes.AsParallel(8)
+                    .Peek(packageProgress.Increment)
+                    .SelectMany(projectNode => GetPackageTokens(projectNode, packageIdsFromProjects, packageTraversal))
+                    .ToList();
+                foreach (var token in packageTokens)
                     graph.Add(token);
                 packageProgress.Complete();
             }
         }
 
-        private IEnumerable<GraphToken> GetPackageTokens(IEnumerable<ProjectNode> projectNodes)
+        private IEnumerable<GraphToken> GetPackageTokens(ProjectNode projectNode, HashSet<NuGetIdentifier> packageIdsFromProjects,
+            GraphTraversal<NuGetDescriptor, GraphToken> packageTraversal)
         {
-            HashSet<NuGetIdentifier> packageIdsFromProjects = projectNodes
-                .Select(projectNode => projectNode.PackageId)
-                .OfType<NuGetIdentifier>()
-                .ToHashSet();
-
-            GraphTraversal<NuGetDescriptor, GraphToken> packageTraversal = new() { Strategy = GraphTraversalStrategy.BypassHistory };
-            foreach (var projectNode in projectNodes)
+            if (projectNode.PackageId is not null)
             {
-                if (projectNode.PackageId is not null)
-                {
-                    PackageKey packageKey = new(projectNode.PackageId.ToString(), null);
-                    yield return new GraphNodeToken(packageKey, PackageLabels.Package);
-                }
+                PackageKey packageKey = new(projectNode.PackageId.ToString(), null);
+                yield return new GraphNodeToken(packageKey, PackageLabels.Package);
+            }
 
-                IEnumerable<NuGetDescriptor> packageDependencies = projectNode.PackageReferences
-                    .Where(packageReference => !packageIdsFromProjects.Contains(packageReference.Id))
-                    .Select(packageReference => NuGet.ResolvePackage(packageReference))
-                    .ToList();
-                foreach (var packageDependency in packageDependencies)
-                {
-                    PackageKey packageDependencyKey = new(packageDependency);
-                    yield return new GraphLinkToken(projectNode.Key, packageDependencyKey, PackageLabels.PackageDependency);
-                    
-                    foreach (var token in GetPackageTokens(packageDependency, packageIdsFromProjects, packageTraversal))
-                        yield return token;
-                }
+            IEnumerable<NuGetDescriptor> packageDependencies = projectNode.PackageReferences
+                .Where(packageReference => !packageIdsFromProjects.Contains(packageReference.Id))
+                .Select(packageReference => NuGet.ResolvePackage(packageReference))
+                .ToList();
+            foreach (var packageDependency in packageDependencies)
+            {
+                PackageKey packageDependencyKey = new(packageDependency);
+                yield return new GraphLinkToken(projectNode.Key, packageDependencyKey, PackageLabels.PackageDependency);
+
+                foreach (var token in GetPackageTokens(packageDependency, packageIdsFromProjects, packageTraversal))
+                    yield return token;
             }
         }
 

@@ -16,21 +16,26 @@ namespace Repka.Graphs
             DirectoryInfo directory = new(key);
             if (directory.Exists)
             {
-                List<FileInfo> projectFiles = directory.EnumerateFiles("*.csproj", SearchOption.AllDirectories)
-                    .AsParallel().WithDegreeOfParallelism(8)
-                    .ToList();
+                List<FileInfo> projectFiles = directory.EnumerateFiles("*.csproj", SearchOption.AllDirectories).AsParallel(8).ToList();
                 ProgressPercentage projectProgress = Progress.Percent("Collecting projects", projectFiles.Count);
-                IEnumerable<GraphToken> tokens = projectFiles
-                    .AsParallel().WithDegreeOfParallelism(8)
+                IEnumerable<GraphToken> projectTokens = projectFiles.AsParallel(8)
                     .Peek(projectProgress.Increment)
-                    .SelectMany(projectFile => GetProjectTokens(projectFile));
-                foreach (var token in tokens)
+                    .SelectMany(projectFile => GetProjectTokens(projectFile))
+                    .ToList();
+                foreach (var token in projectTokens)
                     graph.Add(token);
                 projectProgress.Complete();
 
                 List<ProjectNode> projectNodes = graph.Projects().ToList();
+                Dictionary<NuGetIdentifier, ProjectNode> packagableProjects = projectNodes
+                    .Where(projectNode => projectNode.PackageId is not null)
+                    .ToDictionary(projectNode => projectNode.PackageId!);
                 ProgressPercentage dependencyProgress = Progress.Percent("Collecting project dependencies", projectNodes.Count);
-                foreach (var token in GetDependencyTokens(projectNodes.Peek(dependencyProgress.Increment)))
+                IEnumerable<GraphToken> dependencyTokens = projectNodes
+                    .Peek(dependencyProgress.Increment)
+                    .SelectMany(projectNode => GetDependencyTokens(projectNode, packagableProjects))
+                    .ToList();
+                foreach (var token in dependencyTokens)
                     graph.Add(token);
                 dependencyProgress.Complete();
             }
@@ -100,27 +105,20 @@ namespace Repka.Graphs
             }
         }
 
-        private IEnumerable<GraphToken> GetDependencyTokens(IEnumerable<ProjectNode> projectNodes)
+        private IEnumerable<GraphToken> GetDependencyTokens(ProjectNode projectNode, Dictionary<NuGetIdentifier, ProjectNode> packagableProjects)
         {
-            Dictionary<NuGetIdentifier, ProjectNode> packagableNodes = projectNodes
-                .Where(projectNode => projectNode.PackageId is not null)
-                .ToDictionary(projectNode => projectNode.PackageId!);
-
-            foreach (var projectNode in projectNodes)
-            {
-                foreach (var dependencyNode in GetProjectDependencies(projectNode, packagableNodes))
-                    yield return new GraphLinkToken(projectNode.Key, dependencyNode.Key, ProjectLabels.ProjectDependency);
-            }
+            foreach (var dependencyNode in GetProjectDependencies(projectNode, packagableProjects))
+                yield return new GraphLinkToken(projectNode.Key, dependencyNode.Key, ProjectLabels.ProjectDependency);
         }
 
-        private IEnumerable<ProjectNode> GetProjectDependencies(ProjectNode projectNode, Dictionary<NuGetIdentifier, ProjectNode> packagableNodes)
+        private IEnumerable<ProjectNode> GetProjectDependencies(ProjectNode projectNode, Dictionary<NuGetIdentifier, ProjectNode> packagableProjects)
         {
             foreach (var referenceNode in projectNode.ProjectReferences().ToList())
                 yield return referenceNode;
 
             foreach (var referenceDescriptor in projectNode.PackageReferences.ToList())
             {
-                if (packagableNodes.TryGetValue(referenceDescriptor.Id, out ProjectNode? packagableNode))
+                if (packagableProjects.TryGetValue(referenceDescriptor.Id, out ProjectNode? packagableNode))
                     yield return packagableNode;
             }
         }
