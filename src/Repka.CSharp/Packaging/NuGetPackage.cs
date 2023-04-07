@@ -35,37 +35,40 @@ namespace Repka.Packaging
 
         public bool IsDevelopmentDependency => _developmentDependency;
 
-        public IReadOnlyList<NuGetReference<NuGetDescriptor>> PackageReferences => _packageReferences.Value;
-        private readonly Lazy<List<NuGetReference<NuGetDescriptor>>> _packageReferences;
-        private List<NuGetReference<NuGetDescriptor>> GetPackageReferences()
+        public IReadOnlyList<NuGetPackageReference> PackageReferences => _packageReferences.Value;
+        private readonly Lazy<List<NuGetPackageReference>> _packageReferences;
+        private List<NuGetPackageReference> GetPackageReferences()
         {
             return _packageDependencies
                 .SelectMany(group => group.Packages.Any()
-                    ? group.Packages.Select(package => NuGetReference.Of(group.TargetFramework, NuGetDescriptor.Of(package))).ToList()
-                    : new() { NuGetReference.Of(group.TargetFramework, default(NuGetDescriptor)) })
+                    ? group.Packages.Select(package => new NuGetPackageReference(NuGetDescriptor.Of(package), group.TargetFramework)).ToList()
+                    : new() { new NuGetPackageReference(default, group.TargetFramework) })
                 .ToList();
         }
 
-        public IReadOnlyList<NuGetReference<string>> FrameworkReferences => _frameworkReferences.Value;
-        private readonly Lazy<List<NuGetReference<string>>> _frameworkReferences;
-        public List<NuGetReference<string>> GetFrameworkReferences()
+        public IReadOnlyList<NuGetFrameworkReference> FrameworkReferences => _frameworkReferences.Value;
+        private readonly Lazy<List<NuGetFrameworkReference>> _frameworkReferences;
+        public List<NuGetFrameworkReference> GetFrameworkReferences()
         {
             return _frameworkDependencies
                 .SelectMany(group => group.Items.Any()
-                    ? group.Items.Select(item => NuGetReference.Of(group.TargetFramework, item)).ToList()
-                    : new() { NuGetReference.Of(group.TargetFramework, default(string)) })
+                    ? group.Items.Select(item => new NuGetFrameworkReference(item, group.TargetFramework)).ToList()
+                    : new() { new NuGetFrameworkReference(default, group.TargetFramework) })
                 .ToList();
         }
 
-        public IReadOnlyList<NuGetReference<string>> Assemblies => _assemblies.Value;
-        private readonly Lazy<List<NuGetReference<string>>> _assemblies;
-        private List<NuGetReference<string>> GetAssemblies()
+        public IReadOnlyList<NuGetAssembly> Assemblies => _assemblies.Value;
+        private readonly Lazy<List<NuGetAssembly>> _assemblies;
+        private List<NuGetAssembly> GetAssemblies()
         {
-            List<NuGetReference<string>> assemblies;
+            List<NuGetAssembly> assemblies;
             if (DllsWithTfm.Any())
-                assemblies = DllsWithTfm.Select(dll => NuGetReference.Of(dll.Tfm.Framework, dll.Path)).ToList();
+                assemblies = DllsWithTfm.Select(dll => new NuGetAssembly(dll.Path, dll.Tfm.Framework)).ToList();
             else
-                assemblies = NuGetMonikers.AllFrameworks.SelectMany(framework => GetFiles(".dll").Select(dll => NuGetReference.Of(framework, dll))).ToList();
+                assemblies = NuGetMonikers.AllFrameworks
+                    .SelectMany(framework => GetFiles(".dll")
+                    .Select(dll => new NuGetAssembly(dll, framework)))
+                    .ToList();
 
             return assemblies;
         }

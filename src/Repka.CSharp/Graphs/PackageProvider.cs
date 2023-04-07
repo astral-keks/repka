@@ -71,39 +71,36 @@ namespace Repka.Graphs
                     yield return new GraphNodeToken(packageKey, PackageLabels.Package);
 
                     foreach (var assembly in package.Assemblies)
-                        yield return new GraphLinkToken(packageKey, assembly.Target ?? GraphKey.Null, PackageLabels.PackageAssembly)
-                            .Label(assembly.Framework.Moniker());
+                        yield return new GraphLinkToken(packageKey, assembly.Locaton ?? GraphKey.Null, PackageLabels.PackageAssembly)
+                            .Label(assembly.Framework.ToMoniker());
 
                     foreach (var frameworkReference in package.FrameworkReferences)
                     {
-                        yield return new GraphLinkToken(packageKey, frameworkReference.Target ?? GraphKey.Null, PackageLabels.FrameworkReference)
-                            .Label(frameworkReference.Framework.Moniker());
+                        yield return new GraphLinkToken(packageKey, frameworkReference.Name ?? GraphKey.Null, PackageLabels.FrameworkReference)
+                            .Label(frameworkReference.Framework.ToMoniker());
 
-                        AssemblyFile? frameworkAssembly = Framework.ResolveAssembly(frameworkReference.Target);
+                        AssemblyFile? frameworkAssembly = Framework.ResolveAssembly(frameworkReference.Name);
                         yield return new GraphLinkToken(packageKey, frameworkAssembly?.Path ?? GraphKey.Null, PackageLabels.FrameworkDependency)
-                            .Label(frameworkReference.Framework.Moniker());
+                            .Label(frameworkReference.Framework.ToMoniker());
                     }
 
                     HashSet<NuGetDescriptor> packageDependencies = new();
                     foreach (var packageReference in package.PackageReferences)
                     {
-                        PackageKey? packageReferenceKey = default;
                         PackageKey? packageDependencyKey = default;
-                        if (packageReference.Target is not null && !packageIdsFromProjects.Contains(packageReference.Target.Id))
+                        if (packageReference.Descriptor is not null && !packageIdsFromProjects.Contains(packageReference.Descriptor.Id))
                         {
-                            NuGetDescriptor packageDependency = NuGet.DiscoverPackage(packageReference.Target);
-                            packageDependencies.Add(packageDependency);
+                            PackageKey packageReferenceKey = new(packageReference.Descriptor);
+                            yield return new GraphLinkToken(packageKey, packageReferenceKey, PackageLabels.PackageReference)
+                                .Label(packageReference.Framework.ToMoniker());
 
-                            packageReferenceKey = new(packageReference.Target);
+                            NuGetDescriptor packageDependency = NuGet.DiscoverPackage(packageReference.Descriptor);
+                            packageDependencies.Add(packageDependency);
                             packageDependencyKey = new(packageDependency);
                         }
 
-                        if (packageReferenceKey is not null)
-                            yield return new GraphLinkToken(packageKey, packageReferenceKey ?? GraphKey.Null, PackageLabels.PackageReference)
-                                .Label(packageReference.Framework.Moniker());
-
                         yield return new GraphLinkToken(packageKey, packageDependencyKey ?? GraphKey.Null, PackageLabels.PackageDependency)
-                            .Label(packageReference.Framework.Moniker());
+                            .Label(packageReference.Framework.ToMoniker());
                     }
 
                     foreach (var packageDependency in packageDependencies)

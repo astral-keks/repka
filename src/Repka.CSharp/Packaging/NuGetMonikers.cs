@@ -4,9 +4,9 @@ namespace Repka.Packaging
 {
     internal static class NuGetMonikers
     {
-        public static string? Moniker(this NuGetFramework? framework) => NuGetMoniker.Resolve(framework)?.Id;
-        public static IEnumerable<string> Monikers(this IEnumerable<NuGetFramework> frameworks) => frameworks
-            .Select(framework => framework.Moniker())
+        public static string? ToMoniker(this NuGetFramework? framework) => NuGetMoniker.Resolve(framework)?.Id;
+        public static IEnumerable<string> ToMonikers(this IEnumerable<NuGetFramework> frameworks) => frameworks
+            .Select(framework => framework.ToMoniker())
             .OfType<string>();
 
         public static readonly NuGetMoniker NetCoreApp10 = new("netcoreapp1.0");

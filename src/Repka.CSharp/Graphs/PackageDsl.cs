@@ -117,18 +117,13 @@ namespace Repka.Graphs
                 _table = new(_frameworks);
             }
 
-            public IEnumerable<GraphLink> SelectNearestOrAll(string? targetFramework)
-            {
-                return _frameworks.Any() ? SelectNearest(targetFramework) : _links;
-            }
-
             public IEnumerable<GraphLink> SelectNearest(string? targetFramework)
             {
                 NuGetFramework targetNugetFramework = NuGetMoniker.Resolve(targetFramework)?.Framework ?? NuGetFramework.AnyFramework;
                 NuGetFramework? nearestNugetFramework = !_frameworks.Contains(NuGetFramework.AnyFramework)
                     ? _table.GetNearest(targetNugetFramework).FirstOrDefault()
                     : NuGetFramework.AnyFramework;
-                return nearestNugetFramework.Moniker().ToOptional()
+                return nearestNugetFramework.ToMoniker().ToOptional()
                     .SelectMany(nearestMoniker => _links.Where(link => link.Labels.ContainsAny(nearestMoniker)));
             }
         }
