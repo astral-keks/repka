@@ -75,7 +75,7 @@ namespace Repka.Graphs
 
                     foreach (var frameworkReference in package.FrameworkReferences)
                     {
-                        yield return new GraphLinkToken(packageKey, frameworkReference.AssemblyName ?? GraphKey.Null, PackageLabels.FrameworkReference)
+                        yield return new GraphLinkToken(packageKey, frameworkReference.AssemblyName ?? GraphKey.Null, PackageLabels.PackageFrameworkReference)
                             .Label(frameworkReference.Framework.ToMoniker());
                     }
 

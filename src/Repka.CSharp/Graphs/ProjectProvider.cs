@@ -1,9 +1,7 @@
 ﻿using Microsoft.Build.Construction;
 using Microsoft.CodeAnalysis;
-using Repka.Assemblies;
 using Repka.Collections;
 using Repka.Diagnostics;
-using Repka.Frameworks;
 using Repka.Packaging;
 using Repka.Projects;
 using static Repka.Graphs.PackageDsl;

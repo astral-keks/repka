@@ -96,10 +96,6 @@ namespace Repka.Graphs
             public GraphFragment<PackageNode> PackageDependencies(string? targetFramework) => Outputs(PackageLabels.PackageDependency)
                 .Select(link => link.Target().AsPackage()).OfType<PackageNode>()
                 .ToFragment(packageNode => packageNode.PackageDependencies(targetFramework));
-
-
-            public IEnumerable<AssemblyDescriptor> AssemblyDependencies => Outputs(AssemblyLabels.AssemblyDependency)
-                .Select(link => new AssemblyDescriptor(link.TargetKey.ToString()));
         }
 
         public static class ProjectLabels

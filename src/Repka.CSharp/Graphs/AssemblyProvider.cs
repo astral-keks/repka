@@ -33,7 +33,7 @@ namespace Repka.Graphs
                 {
                     GraphKey assemblyKey = new(assembly.Location);
                     yield return new GraphNodeToken(assemblyKey, AssemblyLabels.Assembly);
-                    yield return new GraphLinkToken(projectNode.Key, assemblyKey, AssemblyLabels.AssemblyDependency);
+                    yield return new GraphLinkToken(projectNode.Key, assemblyKey, AssemblyLabels.Assembly);
                 }
             }
         }

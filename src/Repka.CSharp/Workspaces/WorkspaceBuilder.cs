@@ -22,14 +22,11 @@ namespace Repka.Workspaces
 
         public Project AddProject(ProjectNode projectNode)
         { 
-            HashSet<ProjectNode> projectDependencies = projectNode.ProjectDependencies.Traverse().ToHashSet();
-            HashSet<AssemblyDescriptor> assemblies = projectNode.AssemblyDependencies.ToHashSet();
-
-            List<ProjectReference> projectReferences = projectDependencies
-                .Distinct()
+            List<ProjectReference> projectReferences = projectNode.ProjectDependencies.Traverse()
                 .Select(projectNode => new ProjectReference(projectNode.Id))
                 .ToList();
-            List<MetadataReference> metadataReferences = assemblies
+            List<MetadataReference> metadataReferences = projectNode.Assemblies()
+                .Select(assemblyNode => assemblyNode.Descriptor)
                 .Where(assemblyFile => assemblyFile.Exists)
                 .SelectMany(assemblyFile => References.GetOrAdd(assemblyFile.Location, () => MetadataReference.CreateFromFile(assemblyFile.Location)))
                 .ToList();

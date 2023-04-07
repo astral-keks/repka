@@ -43,7 +43,7 @@ namespace Repka.Graphs
                 .GroupByTargetFramework().SelectNearest(targetFramework)
                 .Select(nearest => new AssemblyDescriptor(nearest.Link.TargetKey));
 
-            public IEnumerable<NuGetFrameworkReference> FrameworkReferences(string? targetFramework) => Outputs(PackageLabels.FrameworkReference)
+            public IEnumerable<NuGetFrameworkReference> FrameworkReferences(string? targetFramework) => Outputs(PackageLabels.PackageFrameworkReference)
                 .GroupByTargetFramework().SelectNearest(targetFramework)
                 .Select(nearest => new NuGetFrameworkReference(nearest.Link.TargetKey, nearest.Framework));
 
@@ -141,7 +141,7 @@ namespace Repka.Graphs
             public const string PackageAssembly = nameof(PackageAssembly);
             public const string PackageReference = nameof(PackageReference);
             public const string PackageDependency = nameof(PackageDependency);
-            public const string FrameworkReference = nameof(FrameworkReference);
+            public const string PackageFrameworkReference = nameof(PackageFrameworkReference);
         }
     }
 }
