@@ -1,10 +1,11 @@
-﻿using System.Security.Cryptography;
+﻿using Repka.Strings;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 
 namespace Repka.Graphs
 {
-    public class GraphKey : IComparable<GraphKey>
+    public class GraphKey : Normalizable, IComparable<GraphKey>
     {
         public static readonly GraphKey Null = new("null");
 
@@ -36,21 +37,21 @@ namespace Repka.Graphs
 
         public static implicit operator string(GraphKey key) => key.Resource;
         public static implicit operator GraphKey(string resource) => new(resource);
-        public GraphKey(string resource)
+        public GraphKey(string resource) : base(resource)
         {
             Resource = resource;
         }
 
         public string Resource { get; }
 
-        public bool Contains(string text)
-        {
-            return Resource.Contains(text, StringComparison.OrdinalIgnoreCase);
-        }
-
         public bool ContainsAny(params string[] texts)
         {
             return texts.Any(Contains);
+        }
+
+        public bool Contains(string text)
+        {
+            return Resource.Contains(text, StringComparison.OrdinalIgnoreCase);
         }
 
         public bool Matches(string pattern, RegexOptions options = RegexOptions.IgnoreCase)
@@ -70,23 +71,22 @@ namespace Repka.Graphs
 
         public int CompareTo(GraphKey? other)
         {
-            return StringComparer.OrdinalIgnoreCase.Compare(Resource, other?.Resource);
+            return string.Compare(Normalized, other?.Normalized);
         }
 
         public override bool Equals(object? obj)
         {
-            return obj is GraphKey key &&
-                string.Equals(Resource, key.Resource, StringComparison.OrdinalIgnoreCase);
+            return obj is GraphKey key && Normalized == key.Normalized;
         }
 
         public override int GetHashCode()
         {
-            return HashCode.Combine(Resource.ToLower());
+            return HashCode.Combine(Normalized);
         }
 
         public Guid GetGuid()
         {
-            byte[] data = Encoding.UTF8.GetBytes(Resource.ToLower());
+            byte[] data = Encoding.UTF8.GetBytes(Normalized);
 
             using var md5 = MD5.Create();
             byte[] hash = md5.ComputeHash(data);

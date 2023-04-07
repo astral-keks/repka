@@ -4,11 +4,11 @@ namespace Repka.Graphs
 {
     public static class SymbolDsl
     {
-        public static SymbolNode? Symbol(this Graph graph, GraphKey key) => graph.Node(key).AsSymbol();
-
         public static IEnumerable<SymbolNode> Symbols(this Graph graph) => graph.Nodes()
             .Select(node => node.AsSymbol())
             .OfType<SymbolNode>();
+
+        public static SymbolNode? Symbol(this Graph graph, GraphKey key) => graph.Node(key).AsSymbol();
 
         public static SymbolNode? AsSymbol(this GraphNode? node) => 
             node?.Labels.Contains(SymbolLabels.IsSymbol) == true ? new(node) : default;

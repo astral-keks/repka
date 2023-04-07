@@ -5,10 +5,10 @@ namespace Repka.Graphs
 {
     public static class AssemblyDsl
     {
-        public static AssemblyNode? Assembly(this Graph graph, GraphKey key) => graph.Node(key).AsAssembly();
-
         public static IEnumerable<AssemblyNode> Assemblies(this Graph graph) => graph.Nodes()
             .Select(node => node.AsAssembly()).OfType<AssemblyNode>();
+
+        public static AssemblyNode? Assembly(this Graph graph, GraphKey key) => graph.Node(key).AsAssembly();
 
         public static AssemblyNode? AsAssembly(this GraphNode? node) => node?.Labels.Contains(AssemblyLabels.Assembly) == true
             ? new AssemblyNode(node)

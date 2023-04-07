@@ -9,6 +9,9 @@ namespace Repka.Graphs
         public static SemanticModel? Semantic(this DocumentNode document) =>
             document.Attribute<SemanticAttribute>()?.Value;
 
+        public static SyntaxNode? Syntax(this DocumentNode document) =>
+            document.Attribute<SyntaxAttribute>()?.Value;
+
         public class SemanticAttribute : GraphAttribute<SemanticModel>
         {
             public SemanticAttribute(Document document) 
@@ -16,9 +19,6 @@ namespace Repka.Graphs
             {
             }
         }
-
-        public static SyntaxNode? Syntax(this DocumentNode document) =>
-            document.Attribute<SyntaxAttribute>()?.Value;
 
         public class SyntaxAttribute : GraphAttribute<SyntaxNode>
         {

@@ -9,10 +9,10 @@ namespace Repka.Graphs
 {
     public static class PackageDsl
     {
-        public static PackageNode? Package(this Graph graph, GraphKey key) => graph.Node(key).AsPackage();
-
         public static IEnumerable<PackageNode> Packages(this Graph graph) => graph.Nodes()
             .Select(node => node.AsPackage()).OfType<PackageNode>();
+
+        public static PackageNode? Package(this Graph graph, GraphKey key) => graph.Node(key).AsPackage();
 
         public static PackageNode? AsPackage(this GraphNode? node) => node?.Labels.Contains(PackageLabels.Package) == true
             ? new PackageNode(node)
@@ -39,13 +39,13 @@ namespace Repka.Graphs
                 .Select(link => link.Source().AsProject()).OfType<ProjectNode>()
                 .FirstOrDefault();
 
-            public IEnumerable<AssemblyFile> Assemblies(string? targetFramework) => Outputs(PackageLabels.PackageAssembly)
+            public IEnumerable<AssemblyDescriptor> Assemblies(string? targetFramework) => Outputs(PackageLabels.PackageAssembly)
                 .GroupByTargetFramework().SelectNearest(targetFramework)
-                .Select(link => new AssemblyFile(link.TargetKey));
+                .Select(link => new AssemblyDescriptor(link.TargetKey));
 
-            public IEnumerable<AssemblyFile> FrameworkDependencies(string? targetFramework) => Outputs(PackageLabels.FrameworkDependency)
+            public IEnumerable<AssemblyDescriptor> FrameworkDependencies(string? targetFramework) => Outputs(PackageLabels.FrameworkDependency)
                 .GroupByTargetFramework().SelectNearest(targetFramework)
-                .Select(link => new AssemblyFile(link.TargetKey));
+                .Select(link => new AssemblyDescriptor(link.TargetKey));
 
             public GraphFragment<PackageNode> PackageDependencies(string? targetFramework) => Outputs(PackageLabels.PackageDependency)
                 .GroupByTargetFramework().SelectNearest(targetFramework)

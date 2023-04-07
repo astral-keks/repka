@@ -23,7 +23,7 @@ namespace Repka.Workspaces
         public Project AddProject(ProjectNode projectNode)
         { 
             HashSet<ProjectNode> projectDependencies = projectNode.ProjectDependencies.Traverse().ToHashSet();
-            HashSet<AssemblyFile> assemblies = projectNode.AssemblyDependencies.ToHashSet();
+            HashSet<AssemblyDescriptor> assemblies = projectNode.AssemblyDependencies.ToHashSet();
 
             List<ProjectReference> projectReferences = projectDependencies
                 .Distinct()
@@ -31,7 +31,7 @@ namespace Repka.Workspaces
                 .ToList();
             List<MetadataReference> metadataReferences = assemblies
                 .Where(assemblyFile => assemblyFile.Exists)
-                .SelectMany(assemblyFile => References.GetOrAdd(assemblyFile.Path, () => MetadataReference.CreateFromFile(assemblyFile.Path)))
+                .SelectMany(assemblyFile => References.GetOrAdd(assemblyFile.Location, () => MetadataReference.CreateFromFile(assemblyFile.Location)))
                 .ToList();
 
             List<DocumentInfo> documents = projectNode.Documents

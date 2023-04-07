@@ -1,9 +1,10 @@
 ﻿using NuGet.Packaging.Core;
 using NuGet.Versioning;
+using Repka.Strings;
 
 namespace Repka.Packaging
 {
-    public class NuGetDescriptor : IComparable<NuGetDescriptor>
+    public class NuGetDescriptor : Normalizable, IComparable<NuGetDescriptor>
     {
         public static NuGetDescriptor Of(PackageDependency package)
         {
@@ -31,7 +32,8 @@ namespace Repka.Packaging
             return new(nugetIdentifier, version);
         }
 
-        public NuGetDescriptor(NuGetIdentifier id, NuGetVersion? version)
+        public NuGetDescriptor(NuGetIdentifier id, NuGetVersion? version) 
+            : base($"{id}:{version}")
         {
             Id = id;
             Version = version;
@@ -48,8 +50,8 @@ namespace Repka.Packaging
         public override bool Equals(object? obj)
         {
             return obj is NuGetDescriptor descriptor &&
-                   Id.Equals(descriptor.Id) &&
-                   EqualityComparer<NuGetVersion?>.Default.Equals(Version, descriptor.Version);
+                   Id == descriptor.Id &&
+                   Version == descriptor.Version;
         }
 
         public override int GetHashCode()
@@ -59,7 +61,7 @@ namespace Repka.Packaging
 
         public int CompareTo(NuGetDescriptor? other)
         {
-            return string.Compare(ToString(), other?.ToString(), StringComparison.OrdinalIgnoreCase);
+            return string.Compare(Normalized, other?.Normalized);
         }
 
         public override string ToString()

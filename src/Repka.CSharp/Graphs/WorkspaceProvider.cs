@@ -18,7 +18,7 @@ namespace Repka.Graphs
 
             List<ProjectNode> projectNodes = graph.Projects().ToList();
             ProgressPercentage projectProgress = Progress.Percent("Creating workspace", projectNodes.Count);
-            projectNodes.AsParallel().Peek(projectProgress.Increment).ForAll(projectNode => workspaceBuilder.AddProject(projectNode));
+            projectNodes.Peek(projectProgress.Increment).ForAll(projectNode => workspaceBuilder.AddProject(projectNode));
             projectProgress.Complete();
 
             AdhocWorkspace workspace = workspaceBuilder.Workspace;

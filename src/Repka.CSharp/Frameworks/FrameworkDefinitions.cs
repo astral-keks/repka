@@ -1,24 +1,23 @@
-﻿using System.Runtime.InteropServices;
+﻿using Repka.Assemblies;
+using System.Runtime.InteropServices;
 
 namespace Repka.Frameworks
 {
     public static class FrameworkDefinitions
     {
         public static readonly FrameworkDefinition Current = new("net6.0",
-            new()
+            new AssemblyResolver(new List<string>()
             {
                 RuntimeEnvironment.GetRuntimeDirectory()
-            },
-            new()
-            {
-            });
+            }));
 
         public static readonly FrameworkDefinition Net48 = new("net48",
-            new() {
+            new(new List<string>() 
+            {
                 @"C:\WINDOWS\Microsoft.Net\Framework64\v4.0.30319",
                 @"C:\WINDOWS\Microsoft.Net\Framework64\v4.0.30319\WPF",
-            },
-            new()
+            }),
+            new List<string>()
             {
                 "mscorlib",
                 "System",
@@ -38,12 +37,9 @@ namespace Repka.Frameworks
 
 
         public static readonly FrameworkDefinition VisualStudio2022 = new(null,
-            new() {
-                @"C:\Program Files\Microsoft Visual Studio\2022\Professional\Common7\IDE\PublicAssemblies",
-            },
-            new()
+            new(new List<string>()
             {
-                
-            });
+                @"C:\Program Files\Microsoft Visual Studio\2022\Professional\Common7\IDE\PublicAssemblies",
+            }));
     }
 }

@@ -79,8 +79,8 @@ namespace Repka.Graphs
                         yield return new GraphLinkToken(packageKey, frameworkReference.Name ?? GraphKey.Null, PackageLabels.FrameworkReference)
                             .Label(frameworkReference.Framework.ToMoniker());
 
-                        AssemblyFile? frameworkAssembly = Framework.ResolveAssembly(frameworkReference.Name);
-                        yield return new GraphLinkToken(packageKey, frameworkAssembly?.Path ?? GraphKey.Null, PackageLabels.FrameworkDependency)
+                        AssemblyDescriptor? frameworkAssembly = Framework.Resolver.FindAssembly(frameworkReference.Name);
+                        yield return new GraphLinkToken(packageKey, frameworkAssembly?.Location ?? GraphKey.Null, PackageLabels.FrameworkDependency)
                             .Label(frameworkReference.Framework.ToMoniker());
                     }
 

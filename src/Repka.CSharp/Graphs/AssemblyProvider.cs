@@ -26,21 +26,21 @@ namespace Repka.Graphs
             foreach (ProjectNode projectNode in projectNodes) 
             {
                 List<ProjectNode> projectDependencies = projectNode.ProjectDependencies.Traverse().ToList();
-                HashSet<AssemblyFile> projectAssemblies = GetProjectAssemblies(projectNode, projectDependencies);
-                HashSet<AssemblyFile> packageAssemblies = GetPackageAssemblies(projectNode, projectDependencies);
+                HashSet<AssemblyDescriptor> projectAssemblies = GetProjectAssemblies(projectNode, projectDependencies);
+                HashSet<AssemblyDescriptor> packageAssemblies = GetPackageAssemblies(projectNode, projectDependencies);
 
                 foreach (var assembly in projectAssemblies.Union(packageAssemblies))
                 {
-                    GraphKey assemblyKey = new(assembly.Path);
+                    GraphKey assemblyKey = new(assembly.Location);
                     yield return new GraphNodeToken(assemblyKey, AssemblyLabels.Assembly);
                     yield return new GraphLinkToken(projectNode.Key, assemblyKey, AssemblyLabels.AssemblyDependency);
                 }
             }
         }
 
-        private HashSet<AssemblyFile> GetProjectAssemblies(ProjectNode projectNode, List<ProjectNode> projectDependencies)
+        private HashSet<AssemblyDescriptor> GetProjectAssemblies(ProjectNode projectNode, List<ProjectNode> projectDependencies)
         {
-            HashSet<AssemblyFile> projectAssemblies = projectDependencies.Prepend(projectNode)
+            HashSet<AssemblyDescriptor> projectAssemblies = projectDependencies.Prepend(projectNode)
                 .SelectMany(projectNode => Enumerable.Concat(
                     projectNode.FrameworkDependencies,
                     projectNode.LibraryDependencies))
@@ -49,7 +49,7 @@ namespace Repka.Graphs
             return projectAssemblies;
         }
 
-        private HashSet<AssemblyFile> GetPackageAssemblies(ProjectNode projectNode, List<ProjectNode> projectDependencies)
+        private HashSet<AssemblyDescriptor> GetPackageAssemblies(ProjectNode projectNode, List<ProjectNode> projectDependencies)
         {
             string? targetFramework = Framework.Moniker;
 
@@ -60,7 +60,7 @@ namespace Repka.Graphs
                 .Select(packageGroup => packageGroup.MaxBy(packageNode => packageNode.Version))
                 .OfType<PackageNode>()
                 .ToList();
-            HashSet<AssemblyFile> packageAssemblies = packageDependencies
+            HashSet<AssemblyDescriptor> packageAssemblies = packageDependencies
                 .SelectMany(packageNode => Enumerable.Concat(
                     packageNode.Assemblies(targetFramework),
                     packageNode.FrameworkDependencies(targetFramework)))

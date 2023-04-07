@@ -1,12 +1,14 @@
-﻿namespace Repka.Packaging
+﻿using Repka.Strings;
+
+namespace Repka.Packaging
 {
-    public class NuGetIdentifier : IComparable<NuGetIdentifier>
+    public class NuGetIdentifier : Normalizable, IComparable<NuGetIdentifier>
     {
         private readonly string _value;
 
         public static implicit operator string(NuGetIdentifier identifier) => identifier._value;
         public static implicit operator NuGetIdentifier(string value) => new(value);
-        public NuGetIdentifier(string value)
+        public NuGetIdentifier(string value) : base(value)
         {
             _value = value;
         }
@@ -15,20 +17,20 @@
 
         public static bool operator !=(NuGetIdentifier? left, NuGetIdentifier? right) => !Equals(left, right);
 
+        public int CompareTo(NuGetIdentifier? other)
+        {
+            return string.Compare(Normalized, other?.Normalized);
+        }
+
         public override bool Equals(object? obj)
         {
             return obj is NuGetIdentifier identifier &&
-                   _value.Equals(identifier._value, StringComparison.OrdinalIgnoreCase);
+                   Normalized == identifier.Normalized;
         }
 
         public override int GetHashCode()
         {
-            return HashCode.Combine(_value.ToLower());
-        }
-
-        public int CompareTo(NuGetIdentifier? other)
-        {
-            return string.Compare(_value, other?._value, StringComparison.OrdinalIgnoreCase);
+            return HashCode.Combine(Normalized);
         }
 
         public override string ToString()

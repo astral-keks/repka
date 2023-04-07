@@ -5,11 +5,11 @@ namespace Repka.Graphs
 {
     public static class DocumentDsl
     {
-        public static DocumentNode? Document(this Graph graph, GraphKey key) => graph.Node(key).AsDocument();
-
         public static IEnumerable<DocumentNode> Documents(this Graph graph) => graph.Nodes()
             .Select(node => node.AsDocument())
             .OfType<DocumentNode>();
+
+        public static DocumentNode? Document(this Graph graph, GraphKey key) => graph.Node(key).AsDocument();
 
         public static DocumentNode? AsDocument(this GraphNode? node) => node?.Labels.Contains(DocumentLabels.Document) == true
             ? new DocumentNode(node)

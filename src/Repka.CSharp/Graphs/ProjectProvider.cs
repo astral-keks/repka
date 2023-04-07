@@ -93,12 +93,12 @@ namespace Repka.Graphs
                 GraphKey frameworkReferenceKey = new(frameworkReference.Name);
                 yield return new GraphLinkToken(projectKey, frameworkReferenceKey, ProjectLabels.FrameworkReference);
 
-                IEnumerable<AssemblyFile> frameworkAssemblies = Framework.Assemblies
-                    .Append(Framework.ResolveAssembly(frameworkReference.Name))
-                    .OfType<AssemblyFile>();
-                foreach (AssemblyFile frameworkAssembly in frameworkAssemblies)
+                IEnumerable<AssemblyDescriptor> frameworkAssemblies = Framework.Assemblies
+                    .Append(Framework.Resolver.FindAssembly(frameworkReference.Name))
+                    .OfType<AssemblyDescriptor>();
+                foreach (var frameworkAssembly in frameworkAssemblies)
                 {
-                    GraphKey frameworkAssemblyKey = new(frameworkAssembly.Path);
+                    GraphKey frameworkAssemblyKey = new(frameworkAssembly.Location);
                     yield return new GraphLinkToken(projectKey, frameworkAssemblyKey, ProjectLabels.FrameworkDependency);
                 }
             }
@@ -106,7 +106,7 @@ namespace Repka.Graphs
             foreach (var documentLink in projectElement.GetDocumentLinks())
             {
                 GraphKey documentReferenceKey = new(documentLink.AbsolutePath);
-                yield return new GraphLinkToken(projectKey, documentReferenceKey, ProjectLabels.DocumentLink);
+                yield return new GraphLinkToken(projectKey, documentReferenceKey, ProjectLabels.DocumentReference);
             }
         }
 

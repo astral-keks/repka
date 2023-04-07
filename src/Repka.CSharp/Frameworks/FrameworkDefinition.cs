@@ -1,67 +1,45 @@
 ﻿using Repka.Assemblies;
-using System.Collections.Concurrent;
-using System.Reflection;
 
 namespace Repka.Frameworks
 {
     public class FrameworkDefinition
     {
         private readonly string? _moniker;
-        private readonly List<string> _roots;
-        private readonly List<AssemblyFile> _assemblies;
-        private readonly ConcurrentDictionary<string, AssemblyFile?> _cache;
+        private readonly AssemblyResolver _resolver;
+        private readonly List<AssemblyDescriptor> _assemblies;
 
-        public FrameworkDefinition(string? moniker, List<string> roots, List<string> assemblies)
-            : this(moniker, roots)
+        public FrameworkDefinition(string? moniker, AssemblyResolver resolver, List<string>? assemblies = null)
+            : this(moniker, resolver)
         {
-            _assemblies.AddRange(assemblies.Select(a => ResolveAssembly(a)).OfType<AssemblyFile>());
+            if (assemblies is not null)
+                _assemblies.AddRange(assemblies.Select(resolver.FindAssembly).OfType<AssemblyDescriptor>());
         }
-        private FrameworkDefinition(string? moniker, List<string> roots, List<AssemblyFile> assemblies)
-            : this(moniker, roots)
+
+        private FrameworkDefinition(string? moniker, List<AssemblyDescriptor> assemblies, AssemblyResolver resolver)
+            : this(moniker, resolver)
         {
             _assemblies.AddRange(assemblies);
         }
-        private FrameworkDefinition(string? moniker, List<string> roots)
+
+        private FrameworkDefinition(string? moniker, AssemblyResolver resolver)
         {
             _moniker = moniker;
-            _roots = roots;
+            _resolver = resolver;
             _assemblies = new();
-            _cache = new();
         }
 
         public string? Moniker => _moniker;
 
-        public IReadOnlyCollection<AssemblyFile> Assemblies => _assemblies;
+        public AssemblyResolver Resolver => _resolver;
+
+        public IReadOnlyCollection<AssemblyDescriptor> Assemblies => _assemblies;
         
-        public AssemblyFile? ResolveAssembly(string? assemblyName)
-        {
-            return assemblyName is not null 
-                ? _cache.GetOrAdd(assemblyName, _ =>
-                {
-                    AssemblyFile? assemblyFile = default;
-
-                    foreach (var root in _roots)
-                    {
-                        string assenblyFileName = $"{assemblyName}.dll";
-                        string assemblyLocation = Path.Combine(root, assenblyFileName);
-                        assemblyFile = new AssemblyFile(assemblyLocation);
-                        if (assemblyFile.Exists)
-                            break;
-                        else
-                            assemblyFile = default;
-                    }
-
-                    return assemblyFile;
-                })
-                : default;
-        }
-
         public static FrameworkDefinition operator &(FrameworkDefinition left, FrameworkDefinition right) => left.CombineWith(right);
         public FrameworkDefinition CombineWith(FrameworkDefinition frameworkDefinition)
         {
             return new(_moniker ?? frameworkDefinition._moniker, 
-                _roots.Concat(frameworkDefinition._roots).ToList(), 
-                _assemblies.Concat(frameworkDefinition._assemblies).ToList());
+                _assemblies.Concat(frameworkDefinition._assemblies).ToList(),
+                new AssemblyResolver(_resolver, frameworkDefinition._resolver));
         }
     }
 }

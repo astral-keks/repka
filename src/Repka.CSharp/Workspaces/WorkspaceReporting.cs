@@ -33,7 +33,6 @@ namespace Repka.Workspaces
             Records = project.Documents.OrderBy(document => document.FilePath)
                 .Select(document => document.ToReport(inspector))
                 .Where(report => report.Records.Any())
-                .ToList()
         };
 
         private static Report ToReport(this Document document, WorkspaceInspector? inspector = default)
@@ -45,7 +44,6 @@ namespace Repka.Workspaces
                 Records = semantic.GetDiagnostics()
                     .Where(diagnostic => inspector is null || inspector.Value.IsRelevantDiagnostic(diagnostic))
                     .Select(diagnostic => diagnostic.ToReport())
-                    .ToList()
             };
         }
 

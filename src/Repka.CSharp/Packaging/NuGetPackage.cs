@@ -113,15 +113,14 @@ namespace Repka.Packaging
 
         private IEnumerable<string> GetFiles(string? extension = default)
         {
-            return _files
-                .Where(path => extension is null || path.EndsWith(extension, StringComparison.OrdinalIgnoreCase));
+            return _files.Where(path => extension is null || path.EndsWith(extension, StringComparison.OrdinalIgnoreCase));
         }
 
         public override bool Equals(object? obj)
         {
             return obj is NuGetPackage package &&
-                   Id.Equals(package.Id) &&
-                   EqualityComparer<NuGetVersion?>.Default.Equals(Version, package.Version);
+                   Id == package.Id &&
+                   Version == package.Version;
         }
 
         public override int GetHashCode()
