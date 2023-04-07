@@ -5,11 +5,11 @@
         public static readonly FrameworkReference Mscorlib = new("mscorlib");
         public static readonly FrameworkReference Netstandard = new("netstandard");
 
-        public FrameworkReference(string name)
+        public FrameworkReference(string assemblyName)
         {
-            Name = name;
+            AssemblyName = assemblyName;
         }
 
-        public string Name { get; }
+        public string AssemblyName { get; }
     }
 }

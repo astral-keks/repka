@@ -134,7 +134,7 @@ namespace Repka.Projects
                 .Concat(frameworkAssemblies);
         }
 
-        public static IEnumerable<DocumentReference> GetDocumentLinks(this ProjectRootElement project)
+        public static IEnumerable<DocumentReference> GetDocumentReferences(this ProjectRootElement project)
         {
             return project.FullPath.ToOptional()
                 .Map(path => Path.GetDirectoryName(project.FullPath))
