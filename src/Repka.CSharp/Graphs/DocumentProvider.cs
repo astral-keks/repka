@@ -13,7 +13,9 @@ namespace Repka.Graphs
             DirectoryInfo directory = new(key);
             if (directory.Exists)
             {
-                List<FileInfo> documentFiles = directory.EnumerateFiles("*.cs", SearchOption.AllDirectories).AsParallel().ToList();
+                List<FileInfo> documentFiles = directory.EnumerateFiles("*.cs", SearchOption.AllDirectories)
+                    .AsParallel().WithDegreeOfParallelism(8)
+                    .ToList();
                 ProgressPercentage documentProgress = Progress.Percent("Collecting documents", documentFiles.Count);
                 foreach (var token in GetDocumentTokens(documentFiles.Peek(documentProgress.Increment), graph.Projects()))
                     graph.Add(token);

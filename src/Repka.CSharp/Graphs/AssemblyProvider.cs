@@ -41,9 +41,9 @@ namespace Repka.Graphs
         private HashSet<AssemblyDescriptor> GetProjectAssemblies(ProjectNode projectNode, List<ProjectNode> projectDependencies)
         {
             HashSet<AssemblyDescriptor> projectAssemblies = projectDependencies.Prepend(projectNode)
-                .SelectMany(projectNode => Enumerable.Concat(
-                    projectNode.FrameworkDependencies,
-                    projectNode.LibraryDependencies))
+                .SelectMany(projectNode => Framework.Assemblies
+                    .Concat(projectNode.FrameworkReferences.Select(Framework.Resolver.FindAssembly).OfType<AssemblyDescriptor>())
+                    .Concat(projectNode.LibraryDependencies))
                 .ToHashSet();
 
             return projectAssemblies;

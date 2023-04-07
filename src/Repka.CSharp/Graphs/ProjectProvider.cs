@@ -13,16 +13,17 @@ namespace Repka.Graphs
 {
     public class ProjectProvider : GraphProvider
     {
-        public FrameworkDefinition Framework { get; init; } = FrameworkDefinitions.Current;
-
         public override void AddTokens(GraphKey key, Graph graph)
         {
             DirectoryInfo directory = new(key);
             if (directory.Exists)
             {
-                List<FileInfo> projectFiles = directory.EnumerateFiles("*.csproj", SearchOption.AllDirectories).ToList();
+                List<FileInfo> projectFiles = directory.EnumerateFiles("*.csproj", SearchOption.AllDirectories)
+                    .AsParallel().WithDegreeOfParallelism(8)
+                    .ToList();
                 ProgressPercentage projectProgress = Progress.Percent("Collecting projects", projectFiles.Count);
-                IEnumerable<GraphToken> tokens = projectFiles.AsParallel().WithDegreeOfParallelism(8)
+                IEnumerable<GraphToken> tokens = projectFiles
+                    .AsParallel().WithDegreeOfParallelism(8)
                     .Peek(projectProgress.Increment)
                     .SelectMany(projectFile => GetProjectTokens(projectFile));
                 foreach (var token in tokens)
@@ -92,15 +93,6 @@ namespace Repka.Graphs
             {
                 GraphKey frameworkReferenceKey = new(frameworkReference.AssemblyName);
                 yield return new GraphLinkToken(projectKey, frameworkReferenceKey, ProjectLabels.FrameworkReference);
-
-                IEnumerable<AssemblyDescriptor> frameworkAssemblies = Framework.Assemblies
-                    .Append(Framework.Resolver.FindAssembly(frameworkReference.AssemblyName))
-                    .OfType<AssemblyDescriptor>();
-                foreach (var frameworkAssembly in frameworkAssemblies)
-                {
-                    GraphKey frameworkAssemblyKey = new(frameworkAssembly.Location);
-                    yield return new GraphLinkToken(projectKey, frameworkAssemblyKey, ProjectLabels.FrameworkDependency);
-                }
             }
 
             foreach (var documentReference in projectElement.GetDocumentReferences())
