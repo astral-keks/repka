@@ -29,6 +29,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Repka.Core\Repka.Core.csproj" />
+    <ProjectReference Include="..\Repka.LocalFs\Repka.LocalFs.csproj" />
   </ItemGroup>
 
 </Project>

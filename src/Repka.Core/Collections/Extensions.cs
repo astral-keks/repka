@@ -50,5 +50,11 @@
         {
             return source.AsParallel().WithDegreeOfParallelism(degreeOfParallelism);
         }
+
+        public static IEnumerable<TSource> AsEnumerable<TSource>(this TSource source)
+        {
+            yield return source;
+        }
+
     }
 }

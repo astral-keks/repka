@@ -2,7 +2,7 @@
 
 namespace Repka.Collections
 {
-    public static class Optional
+    public static class Optionals
     {
         public static IOptional<T> ToOptional<T>(this T? value)
         {
@@ -17,6 +17,33 @@ namespace Repka.Collections
         public static IOptional<T> Empty<T>()
         {
             return new Optional<T>(default);
+        }
+    }
+
+    public interface IOptional<out T> : IEnumerable<T>
+    {
+        public bool HasValue { get; }
+
+        public T Value { get; }
+
+        public T? OrElseDefault()
+        {
+            return HasValue ? Value : default;
+        }
+
+        public IOptional<T> Filter(Func<T, bool> predicate)
+        {
+            return HasValue && predicate(Value) ? this : Optionals.Empty<T>();
+        }
+
+        public IOptional<R> FlatMap<R>(Func<T, IOptional<R>> selector)
+        {
+            return HasValue ? selector(Value) : Optionals.Empty<R>();
+        }
+
+        public IOptional<R> Map<R>(Func<T, R> selector)
+        {
+            return HasValue ? selector(Value).ToOptional() : Optionals.Empty<R>();
         }
     }
 
@@ -44,4 +71,5 @@ namespace Repka.Collections
             return GetEnumerator();
         }
     }
+
 }

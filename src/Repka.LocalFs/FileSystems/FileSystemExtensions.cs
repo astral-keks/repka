@@ -2,49 +2,24 @@
 {
     public static class FileSystemExtensions
     {
-        public static FileSystem Map(this FileSystem source, Func<FileSystemEntry, FileSystemEntry?> mapper)
+        public static IEnumerable<DirectoryInfo> ParentDirectories(this FileInfo file)
         {
-            IEnumerable<FileSystemEntry> map(FileSystemEntry input)
+            if (file.Directory is not null)
             {
-                foreach (var entry in source.GetEntries(input))
-                {
-                    FileSystemEntry? result = mapper(entry);
-                    if (result is not null)
-                        yield return new FileSystemEntry(result.Path, entry.Path);
-                }
+                yield return file.Directory;
+                foreach (var parent in file.Directory.ParentDirectories())
+                    yield return parent;
             }
-
-            return new(map);
         }
 
-        public static FileSystem Then(this FileSystem source, FileSystem target)
+        public static IEnumerable<DirectoryInfo> ParentDirectories(this DirectoryInfo directory)
         {
-            IEnumerable<FileSystemEntry> then(FileSystemEntry input)
+            if (directory.Parent is not null)
             {
-                foreach (var entry in source.GetEntries(input))
-                {
-                    yield return entry;
-
-                    foreach (var next in target.GetEntries(entry))
-                        yield return new FileSystemEntry(next.Path, entry.Path);
-                }
+                yield return directory.Parent;
+                foreach (var parent in directory.Parent.ParentDirectories())
+                    yield return parent;
             }
-
-            return new(then);
-        }
-
-        public static FileSystem Pipe(this FileSystem source, FileSystem target)
-        {
-            IEnumerable<FileSystemEntry> then(FileSystemEntry input)
-            {
-                foreach (var entry in source.GetEntries(input))
-                {
-                    foreach (var next in target.GetEntries(entry))
-                        yield return new FileSystemEntry(next.Path, entry.Path);
-                }
-            }
-
-            return new(then);
         }
     }
 }
