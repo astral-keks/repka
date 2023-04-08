@@ -1,6 +1,5 @@
 ﻿using Microsoft.CodeAnalysis;
 using Repka.Diagnostics;
-using Repka.FileSystems;
 using System.Collections.Immutable;
 
 namespace Repka.Workspaces
@@ -11,16 +10,19 @@ namespace Repka.Workspaces
         {
             if (provider is not null && workspace.CurrentSolution.FilePath is not null)
             {
-                string aux = FileSystemPaths.Aux(workspace.CurrentSolution.FilePath);
-                using (ReportWriter diagrnosticsWriter = provider.GetWriter(aux, "diagnostics"))
+                using (ReportWriter diagrnosticsWriter = provider.GetWriter(workspace.CurrentSolution.FilePath, "diagnostics"))
                 {
-                    foreach (var project in workspace.CurrentSolution.Projects.OrderBy(project => project.FilePath))
-                    {
-                        Report report = project.ToReport(inspector ?? WorkspaceInspector.Default);
-                        if (report.Records.Any())
-                            diagrnosticsWriter.Write(report);
+                    IEnumerable<Project> projects = workspace.CurrentSolution.Projects.OrderBy(project => project.FilePath)
+                        //.AsParallel().AsOrdered().WithDegreeOfParallelism(8)
+                        .Select(project =>
+                        {
+                            Report report = project.ToReport(inspector ?? WorkspaceInspector.Default);
+                            if (report.Records.Any())
+                                diagrnosticsWriter.Write(report);
+                            return project;
+                        });
+                    foreach (var project in projects)
                         yield return project;
-                    }
                 }
             }
         }

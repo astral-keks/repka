@@ -33,7 +33,9 @@ namespace Repka.Frameworks
         public AssemblyResolver Resolver => _resolver;
 
         public IReadOnlyCollection<AssemblyDescriptor> Assemblies => _assemblies;
-        
+
+        public static implicit operator string?(FrameworkDefinition frameworkDefinition) => frameworkDefinition.Moniker;
+
         public static FrameworkDefinition operator &(FrameworkDefinition left, FrameworkDefinition right) => left.CombineWith(right);
         public FrameworkDefinition CombineWith(FrameworkDefinition frameworkDefinition)
         {

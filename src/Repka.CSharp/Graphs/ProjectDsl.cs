@@ -85,7 +85,7 @@ namespace Repka.Graphs
                 .Select(link => link.Target().AsProject()).OfType<ProjectNode>()
                 .ToFragment(projectNode => projectNode.ProjectDependencies);
 
-            public IEnumerable<ProjectNode> DependingProjects => Inputs(ProjectLabels.ProjectDependency)
+            public IEnumerable<ProjectNode> DependentProjects => Inputs(ProjectLabels.ProjectDependency)
                 .Select(link => link.Source().AsProject()).OfType<ProjectNode>();
             
 

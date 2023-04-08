@@ -13,12 +13,11 @@ namespace Repka.Graphs
             DirectoryInfo directory = new(key);
             if (directory.Exists)
             {
+                List<FileInfo> documentFiles = directory.EnumerateFiles("*.cs", SearchOption.AllDirectories).AsParallel(8).ToList();
+                ProgressPercentage documentProgress = Progress.Percent("Collecting documents", documentFiles.Count);
                 Dictionary<string, List<ProjectNode>> projectsByPath = graph.Projects()
                     .GroupBy(projectNode => projectNode.Directory)
                     .ToDictionary(group => group.Key, group => group.ToList());
-
-                List<FileInfo> documentFiles = directory.EnumerateFiles("*.cs", SearchOption.AllDirectories).AsParallel(8).ToList();
-                ProgressPercentage documentProgress = Progress.Percent("Collecting documents", documentFiles.Count);
                 IEnumerable<GraphToken> tokens = documentFiles.AsParallel(8)
                     .Peek(documentProgress.Increment)
                     .SelectMany(documentFile => GetDocumentTokens(documentFile, projectsByPath))

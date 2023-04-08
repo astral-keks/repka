@@ -1,5 +1,6 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
+using Repka.Assemblies;
 using Repka.Collections;
 using Repka.FileSystems;
 using Repka.Graphs;
@@ -25,10 +26,14 @@ namespace Repka.Workspaces
             List<ProjectReference> projectReferences = projectNode.ProjectDependencies.Traverse()
                 .Select(projectNode => new ProjectReference(projectNode.Id))
                 .ToList();
-            List<MetadataReference> metadataReferences = projectNode.Assemblies()
+            List<MetadataReference> metadataReferences = projectNode.AssemblyDependencies()
                 .Select(assemblyNode => assemblyNode.Descriptor)
-                .Where(assemblyFile => assemblyFile.Exists)
-                .SelectMany(assemblyFile => References.GetOrAdd(assemblyFile.Location, () => MetadataReference.CreateFromFile(assemblyFile.Location)))
+                .Where(assembly => assembly.Exists)
+                .GroupBy(assembly => assembly.Name)
+                .Select(assemblyGroup => assemblyGroup.MaxBy(assembly => assembly.Version))
+                .OfType<AssemblyDescriptor>()
+                .SelectMany(assembly => References.GetOrAdd(assembly.Location, 
+                    () => MetadataReference.CreateFromFile(assembly.Location)))
                 .ToList();
 
             List<DocumentInfo> documents = projectNode.Documents.AsParallel()

@@ -8,7 +8,7 @@ namespace Repka.Graphs
 {
     public class PackageProvider : GraphProvider
     {
-        public NuGetManager NuGet { get; init; } = new(".");
+        public NuGetManager NuGetManager { get; init; } = new(".");
 
         public override void AddTokens(GraphKey key, Graph graph)
         {
@@ -43,7 +43,7 @@ namespace Repka.Graphs
 
             IEnumerable<NuGetDescriptor> packageDependencies = projectNode.PackageReferences
                 .Where(packageReference => !packageIdsFromProjects.Contains(packageReference.Id))
-                .Select(packageReference => NuGet.ResolvePackage(packageReference))
+                .Select(packageReference => NuGetManager.ResolvePackage(packageReference))
                 .ToList();
             foreach (var packageDependency in packageDependencies)
             {
@@ -62,7 +62,7 @@ namespace Repka.Graphs
             
             IEnumerable<GraphToken> packageVisitor()
             {
-                NuGetPackage? package = NuGet.RestorePackage(packageDescriptor);
+                NuGetPackage? package = NuGetManager.RestorePackage(packageDescriptor);
                 if (package is not null)
                 {
                     PackageKey packageKey = new(package);
@@ -88,7 +88,7 @@ namespace Repka.Graphs
                             yield return new GraphLinkToken(packageKey, packageReferenceKey, PackageLabels.PackageReference)
                                 .Label(packageReference.Framework.ToMoniker());
 
-                            NuGetDescriptor packageDependency = NuGet.DiscoverPackage(packageReference.Descriptor);
+                            NuGetDescriptor packageDependency = NuGetManager.DiscoverPackage(packageReference.Descriptor);
                             packageDependencies.Add(packageDependency);
                             packageDependencyKey = new(packageDependency);
                         }
