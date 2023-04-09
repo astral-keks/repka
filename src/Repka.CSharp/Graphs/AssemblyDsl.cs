@@ -27,14 +27,11 @@ namespace Repka.Graphs
         {
             internal AssemblyNode(GraphNode node) : base(node) 
             {
-                _descriptpor = new(GetDescriptor);
             }
 
             public string Location => Key;
 
-            private readonly Lazy<AssemblyDescriptor> _descriptpor;
-            public AssemblyDescriptor Descriptor => _descriptpor.Value;
-            private AssemblyDescriptor GetDescriptor() => new(Location);
+            public AssemblyDescriptor Descriptor => new(Location);
 
             public string Name => Path.GetFileNameWithoutExtension(Location);
 

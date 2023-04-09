@@ -47,5 +47,10 @@ namespace Repka.Assemblies
         {
             return HashCode.Combine(Normalized);
         }
+
+        public override string ToString()
+        {
+            return Location;
+        }
     }
 }
