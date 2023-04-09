@@ -4,61 +4,69 @@ namespace Repka.Collections
 {
     public static class Recursable
     {
-        public static Recursable<TSource> Recurse<TSource>(this TSource source, Func<TSource, IEnumerable<TSource>> select,
-            Enumeration<TSource>? context = default)
+        public static IRecursable<TSource> Recurse<TSource>(this IEnumerable<TSource> source, Func<TSource, IEnumerable<TSource>> select)
             where TSource : notnull
         {
-            return source.AsEnumerable().Recurse(select, context ?? new Enumeration<TSource>());
-        }
-
-        public static Recursable<TSource> Recurse<TSource>(this IEnumerable<TSource> source, Func<TSource, IEnumerable<TSource>> select,
-            Enumeration<TSource>? context = default)
-            where TSource : notnull
-        {
-            context ??= new Enumeration<TSource>();
-            return new Recursable<TSource>(source, select, context);
+            return new Recursable<TSource>(source.ToList(), select);
         }
     }
 
-    public class Recursable<TSource> : IEnumerable<TSource>
+    public interface IRecursable<out TSource> : IEnumerable<TSource>
         where TSource : notnull
     {
-        private readonly IEnumerable<TSource> _source;
-        private readonly Func<TSource, IEnumerable<TSource>> _select;
-        private readonly Enumeration<TSource> _context;
+        IEnumerable<TSource> Roots { get; }
 
-        public Recursable(IEnumerable<TSource> source, Func<TSource, IEnumerable<TSource>> select, Enumeration<TSource> context)
-        {
-            _source = source;
-            _select = select;
-            _context = context;
-        }
+        IEnumerable<TSource> Flatten(bool distinct = true);
 
-        public IEnumerable<TSource> All()
+        IEnumerator<TSource> IEnumerable<TSource>.GetEnumerator()
         {
-            return _source.SelectMany(source => _context.YieldAll(source, () => ToCollection(source)));
-        }
-
-        public IEnumerable<TSource> Distinct()
-        {
-            return _source.SelectMany(source => _context.YieldDistinct(source, () => ToCollection(source)));
-        }
-
-        private ICollection<TSource> ToCollection(TSource source)
-        {
-            return _select(source).Prepend(source)
-                .Recurse(_select, _context)
-                .ToList();
-        }
-
-        public IEnumerator<TSource> GetEnumerator()
-        {
-            return All().GetEnumerator();
+            return Roots.GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();
+        }
+    }
+
+
+    public class Recursable<TSource> : IRecursable<TSource>
+        where TSource : notnull
+    {
+        private readonly ICollection<TSource> _source;
+        private readonly Func<TSource, IEnumerable<TSource>> _select;
+
+        public Recursable(ICollection<TSource> source, Func<TSource, IEnumerable<TSource>> select)
+        {
+            _source = source;
+            _select = select;
+        }
+
+        public IEnumerable<TSource> Roots 
+        { 
+            get => _source; 
+        }
+
+        public IEnumerable<TSource> Flatten(bool distinct = true)
+        {
+            Inspection<TSource> context = new();
+            return Traverse(_source, distinct ? context.InspectOrIgnore : context.InspectOrGet);
+        }
+
+        public IEnumerable<TSource> Traverse(IEnumerable<TSource> source, Inspector<TSource> inspector)
+        {
+            return source.SelectMany(src => Traverse(src, inspector));
+        }
+
+        public ICollection<TSource> Traverse(TSource source, Inspector<TSource> inspector)
+        {
+            return inspector(source, () => Inspect().ToList());
+            IEnumerable<TSource> Inspect()
+            {
+                yield return source;
+                foreach (var item in Traverse(_select(source), inspector))
+                    yield return item;
+            }
         }
     }
 }

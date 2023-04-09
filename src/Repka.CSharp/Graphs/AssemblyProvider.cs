@@ -16,10 +16,10 @@ namespace Repka.Graphs
         {
             List<PackageNode> packageNodes = graph.Packages().ToList();
             ProgressPercentage packageProgress = Progress.Percent("Resolving package assemblies", packageNodes.Count);
-            GraphTraversal<PackageNode, AssemblyDescriptor> packageTraversal = new() { Strategy = GraphTraversalStrategy.RecallHistory };
+            Inspection<PackageNode, AssemblyDescriptor> packageInspection = new();
             IEnumerable<GraphToken> packageTokens = packageNodes.AsParallel(8)
                 .Peek(packageProgress.Increment)
-                .SelectMany(packageNode => GetAssemblyTokens(GetPackageAssemblies(packageNode, packageTraversal), packageNode))
+                .SelectMany(packageNode => GetAssemblyTokens(GetPackageAssemblies(packageNode, packageInspection), packageNode))
                 .ToList();
             foreach (var token in packageTokens)
                 graph.Add(token);
@@ -27,10 +27,10 @@ namespace Repka.Graphs
 
             List<ProjectNode> projectNodes = graph.Projects().ToList();
             ProgressPercentage projectProgress = Progress.Percent("Resolving project assemblies", projectNodes.Count);
-            GraphTraversal<ProjectNode, AssemblyDescriptor> projectTraversal = new() { Strategy = GraphTraversalStrategy.RecallHistory };
+            Inspection<ProjectNode, AssemblyDescriptor> projectInspection = new();
             IEnumerable<GraphToken> projectTokens = projectNodes.AsParallel(8)
                 .Peek(projectProgress.Increment)
-                .SelectMany(projectNode => GetAssemblyTokens(GetProjectAssemblies(projectNode, projectTraversal), projectNode))
+                .SelectMany(projectNode => GetAssemblyTokens(GetProjectAssemblies(projectNode, projectInspection), projectNode))
                 .ToList();
             foreach (var token in projectTokens)
                 graph.Add(token);
@@ -48,9 +48,9 @@ namespace Repka.Graphs
         }
 
         private IEnumerable<AssemblyDescriptor> GetPackageAssemblies(PackageNode packageNode, 
-            GraphTraversal<PackageNode, AssemblyDescriptor> packageTraversal)
+            Inspection<PackageNode, AssemblyDescriptor> packageInspection)
         {
-            return packageTraversal.Visit(packageNode, () => visitPackage().ToHashSet());
+            return packageInspection.InspectOrGet(packageNode, () => visitPackage().ToHashSet());
             IEnumerable<AssemblyDescriptor> visitPackage()
             {
                 foreach (var assembly in packageNode.Assemblies(TargetFramework))
@@ -65,16 +65,16 @@ namespace Repka.Graphs
 
                 foreach (var packageDependency in packageNode.PackageDependencies(TargetFramework))
                 {
-                    foreach (var assembly in GetPackageAssemblies(packageDependency, packageTraversal))
+                    foreach (var assembly in GetPackageAssemblies(packageDependency, packageInspection))
                         yield return assembly;
                 }
             }
         }
 
         private IEnumerable<AssemblyDescriptor> GetProjectAssemblies(ProjectNode projectNode,
-            GraphTraversal<ProjectNode, AssemblyDescriptor> projectTraversal)
+            Inspection<ProjectNode, AssemblyDescriptor> projectInspection)
         {
-            return projectTraversal.Visit(projectNode, () => visitProject().ToHashSet());
+            return projectInspection.InspectOrGet(projectNode, () => visitProject().ToHashSet());
             IEnumerable<AssemblyDescriptor> visitProject()
             {
                 foreach (var assembly in TargetFramework.Assemblies)
@@ -98,7 +98,7 @@ namespace Repka.Graphs
 
                 foreach (var projectDependency in projectNode.ProjectDependencies)
                 {
-                    foreach (var assembly in GetProjectAssemblies(projectDependency, projectTraversal))
+                    foreach (var assembly in GetProjectAssemblies(projectDependency, projectInspection))
                         yield return assembly;
                 }
             }

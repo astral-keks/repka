@@ -47,10 +47,10 @@ namespace Repka.Graphs
                 .GroupByTargetFramework().SelectNearest(targetFramework)
                 .Select(nearest => new NuGetFrameworkReference(nearest.Link.TargetKey, nearest.Framework));
 
-            public GraphFragment<PackageNode> PackageDependencies(string? targetFramework) => Outputs(PackageLabels.PackageDependency)
+            public IRecursable<PackageNode> PackageDependencies(string? targetFramework) => Outputs(PackageLabels.PackageDependency)
                 .GroupByTargetFramework().SelectNearest(targetFramework)
                 .Select(nearest => nearest.Link.Target().AsPackage()).OfType<PackageNode>()
-                .ToFragment(packageVersionNode => packageVersionNode.PackageDependencies(targetFramework));
+                .Recurse(package => package.PackageDependencies(targetFramework));
 
 
             public IEnumerable<ProjectNode> DependingProjects => Inputs(PackageLabels.PackageDependency)

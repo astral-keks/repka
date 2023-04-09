@@ -1,5 +1,6 @@
 ﻿using Microsoft.CodeAnalysis;
 using Repka.Assemblies;
+using Repka.Collections;
 using Repka.Packaging;
 using static Repka.Graphs.AssemblyDsl;
 using static Repka.Graphs.DocumentDsl;
@@ -81,9 +82,9 @@ namespace Repka.Graphs
             public IEnumerable<string> ProjectReferences => Outputs(ProjectLabels.ProjectReference)
                 .Select(link => link.TargetKey.ToString());
 
-            public GraphFragment<ProjectNode> ProjectDependencies => Outputs(ProjectLabels.ProjectDependency)
+            public IRecursable<ProjectNode> ProjectDependencies => Outputs(ProjectLabels.ProjectDependency)
                 .Select(link => link.Target().AsProject()).OfType<ProjectNode>()
-                .ToFragment(projectNode => projectNode.ProjectDependencies);
+                .Recurse(projectNode => projectNode.ProjectDependencies);
 
             public IEnumerable<ProjectNode> DependentProjects => Inputs(ProjectLabels.ProjectDependency)
                 .Select(link => link.Source().AsProject()).OfType<ProjectNode>();
@@ -93,9 +94,9 @@ namespace Repka.Graphs
                 .Select(link => PackageKey.Parse(link.TargetKey))
                 .Select(key => NuGetDescriptor.Of(key.Id, key.Version));
 
-            public GraphFragment<PackageNode> PackageDependencies(string? targetFramework) => Outputs(PackageLabels.PackageDependency)
+            public IRecursable<PackageNode> PackageDependencies(string? targetFramework) => Outputs(PackageLabels.PackageDependency)
                 .Select(link => link.Target().AsPackage()).OfType<PackageNode>()
-                .ToFragment(packageNode => packageNode.PackageDependencies(targetFramework));
+                .Recurse(packageNode => packageNode.PackageDependencies(targetFramework));
         }
 
         public static class ProjectLabels

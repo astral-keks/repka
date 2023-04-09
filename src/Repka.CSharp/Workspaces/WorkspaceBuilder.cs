@@ -23,7 +23,7 @@ namespace Repka.Workspaces
 
         public Project AddProject(ProjectNode projectNode)
         { 
-            List<ProjectReference> projectReferences = projectNode.ProjectDependencies.Traverse()
+            List<ProjectReference> projectReferences = projectNode.ProjectDependencies.Flatten()
                 .Select(projectNode => new ProjectReference(projectNode.Id))
                 .ToList();
             List<MetadataReference> metadataReferences = projectNode.AssemblyDependencies()

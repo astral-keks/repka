@@ -20,7 +20,7 @@ namespace Repka.Graphs
                     .Select(projectNode => projectNode.PackageId)
                     .OfType<NuGetIdentifier>()
                     .ToHashSet();
-                GraphTraversal<NuGetDescriptor, GraphToken> packageTraversal = new() { Strategy = GraphTraversalStrategy.BypassHistory };
+                Inspection<NuGetDescriptor, GraphToken> packageTraversal = new();
                 ProgressPercentage packageProgress = Progress.Percent("Resolving packages", projectNodes.Count);
                 IEnumerable<GraphToken> packageTokens = projectNodes.AsParallel(8)
                     .Peek(packageProgress.Increment)
@@ -33,7 +33,7 @@ namespace Repka.Graphs
         }
 
         private IEnumerable<GraphToken> GetPackageTokens(ProjectNode projectNode, HashSet<NuGetIdentifier> packageIdsFromProjects,
-            GraphTraversal<NuGetDescriptor, GraphToken> packageTraversal)
+            Inspection<NuGetDescriptor, GraphToken> packageInspection)
         {
             if (projectNode.PackageId is not null)
             {
@@ -50,17 +50,16 @@ namespace Repka.Graphs
                 PackageKey packageDependencyKey = new(packageDependency);
                 yield return new GraphLinkToken(projectNode.Key, packageDependencyKey, PackageLabels.PackageDependency);
 
-                foreach (var token in GetPackageTokens(packageDependency, packageIdsFromProjects, packageTraversal))
+                foreach (var token in GetPackageTokens(packageDependency, packageIdsFromProjects, packageInspection))
                     yield return token;
             }
         }
 
         private ICollection<GraphToken> GetPackageTokens(NuGetDescriptor packageDescriptor, HashSet<NuGetIdentifier> packageIdsFromProjects, 
-            GraphTraversal<NuGetDescriptor, GraphToken> packageTraversal)
+            Inspection<NuGetDescriptor, GraphToken> packageInspection)
         {
-            return packageTraversal.Visit(packageDescriptor, () => packageVisitor().ToList());
-            
-            IEnumerable<GraphToken> packageVisitor()
+            return packageInspection.InspectOrIgnore(packageDescriptor, () => visitPackage().ToList());
+            IEnumerable<GraphToken> visitPackage()
             {
                 NuGetPackage? package = NuGetManager.RestorePackage(packageDescriptor);
                 if (package is not null)
@@ -99,7 +98,7 @@ namespace Repka.Graphs
 
                     foreach (var packageDependency in packageDependencies)
                     {
-                        foreach (var token in GetPackageTokens(packageDependency, packageIdsFromProjects, packageTraversal))
+                        foreach (var token in GetPackageTokens(packageDependency, packageIdsFromProjects, packageInspection))
                             yield return token;
                     }
                 }
