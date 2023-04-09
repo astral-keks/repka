@@ -107,19 +107,19 @@ namespace Repka.Graphs
 
         private IEnumerable<GraphToken> GetDependencyTokens(ProjectNode projectNode, Dictionary<NuGetIdentifier, ProjectNode> packagableProjects)
         {
-            foreach (var dependencyNode in GetProjectDependencies(projectNode, packagableProjects))
-                yield return new GraphLinkToken(projectNode.Key, dependencyNode.Key, ProjectLabels.ProjectDependency);
+            foreach (var dependencyKey in GetProjectDependencies(projectNode, packagableProjects))
+                yield return new GraphLinkToken(projectNode.Key, dependencyKey, ProjectLabels.ProjectDependency);
         }
 
-        private IEnumerable<ProjectNode> GetProjectDependencies(ProjectNode projectNode, Dictionary<NuGetIdentifier, ProjectNode> packagableProjects)
+        private IEnumerable<GraphKey> GetProjectDependencies(ProjectNode projectNode, Dictionary<NuGetIdentifier, ProjectNode> packagableProjects)
         {
-            foreach (var referenceNode in projectNode.ProjectReferences().ToList())
-                yield return referenceNode;
+            foreach (var projectReference in projectNode.ProjectReferences.ToList())
+                yield return projectReference;
 
             foreach (var referenceDescriptor in projectNode.PackageReferences.ToList())
             {
                 if (packagableProjects.TryGetValue(referenceDescriptor.Id, out ProjectNode? packagableNode))
-                    yield return packagableNode;
+                    yield return packagableNode.Key;
             }
         }
     }

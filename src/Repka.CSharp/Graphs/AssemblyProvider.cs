@@ -80,7 +80,7 @@ namespace Repka.Graphs
                 foreach (var assembly in TargetFramework.Assemblies)
                     yield return assembly;
 
-                foreach (var assembly in projectNode.LibraryDependencies)
+                foreach (var assembly in projectNode.LibraryReferences)
                     yield return assembly;
 
                 foreach (var frameworkReference in projectNode.FrameworkReferences)
@@ -90,7 +90,7 @@ namespace Repka.Graphs
                         yield return frameworkAssembly;
                 }
 
-                foreach (var packageDependency in projectNode.PackageDependencies(TargetFramework))
+                foreach (var packageDependency in projectNode.PackageDependencies)
                 {
                     foreach (var assembly in packageDependency.AssemblyDependencies())
                         yield return assembly.Descriptor;

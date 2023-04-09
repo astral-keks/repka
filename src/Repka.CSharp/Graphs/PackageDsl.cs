@@ -47,19 +47,16 @@ namespace Repka.Graphs
                 .GroupByTargetFramework().SelectNearest(targetFramework)
                 .Select(nearest => new NuGetFrameworkReference(nearest.Link.TargetKey, nearest.Framework));
 
-            public IRecursable<PackageNode> PackageDependencies(string? targetFramework) => Outputs(PackageLabels.PackageDependency)
+            public IEnumerable<PackageNode> PackageDependencies(string? targetFramework) => Outputs(PackageLabels.PackageDependency)
                 .GroupByTargetFramework().SelectNearest(targetFramework)
-                .Select(nearest => nearest.Link.Target().AsPackage()).OfType<PackageNode>()
-                .Recurse(package => package.PackageDependencies(targetFramework));
-
-
-            public IEnumerable<ProjectNode> DependingProjects => Inputs(PackageLabels.PackageDependency)
-                .Select(link => link.Source().AsProject()).OfType<ProjectNode>();
+                .Select(nearest => nearest.Link.Target().AsPackage()).OfType<PackageNode>();
 
             public IEnumerable<PackageNode> DependingPackages(string? targetFramework) => Inputs(PackageLabels.PackageDependency)
                 .GroupByTargetFramework().SelectNearest(targetFramework)
                 .Select(nearest => nearest.Link.Source().AsPackage()).OfType<PackageNode>();
 
+            public IEnumerable<ProjectNode> DependingProjects => Inputs(PackageLabels.PackageDependency)
+                .Select(link => link.Source().AsProject()).OfType<ProjectNode>();
         }
 
         public class PackageKey : GraphKey

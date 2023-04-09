@@ -1,8 +1,6 @@
 ﻿using Microsoft.CodeAnalysis;
 using Repka.Assemblies;
-using Repka.Collections;
 using Repka.Packaging;
-using static Repka.Graphs.AssemblyDsl;
 using static Repka.Graphs.DocumentDsl;
 using static Repka.Graphs.PackageDsl;
 
@@ -17,14 +15,6 @@ namespace Repka.Graphs
 
         public static ProjectNode? AsProject(this GraphNode? node) =>
             node?.Labels.Contains(ProjectLabels.Project) == true ? new(node) : default;
-
-
-        public static IEnumerable<ProjectNode> ProjectReferences(this ProjectNode project) => project.Outputs(ProjectLabels.ProjectReference)
-            .Select(link => link.Target().AsProject()).OfType<ProjectNode>();
-
-        public static IEnumerable<PackageNode> PackageReferences(this ProjectNode project) => project.Outputs(ProjectLabels.PackageReference)
-            .Select(link => link.Target().AsPackage())
-            .OfType<PackageNode>();
 
 
         public class ProjectNode : GraphNode
@@ -72,19 +62,15 @@ namespace Repka.Graphs
                 .Select(link => link.TargetKey.ToString());
 
 
-            public IEnumerable<string> LibraryReferences => Outputs(ProjectLabels.LibraryReference)
-                .Select(link => link.TargetKey.ToString());
-
-            public IEnumerable<AssemblyDescriptor> LibraryDependencies => Outputs(ProjectLabels.LibraryReference)
+            public IEnumerable<AssemblyDescriptor> LibraryReferences => Outputs(ProjectLabels.LibraryReference)
                 .Select(link => new AssemblyDescriptor(link.TargetKey.ToString()));
 
 
             public IEnumerable<string> ProjectReferences => Outputs(ProjectLabels.ProjectReference)
                 .Select(link => link.TargetKey.ToString());
 
-            public IRecursable<ProjectNode> ProjectDependencies => Outputs(ProjectLabels.ProjectDependency)
-                .Select(link => link.Target().AsProject()).OfType<ProjectNode>()
-                .Recurse(projectNode => projectNode.ProjectDependencies);
+            public IEnumerable<ProjectNode> ProjectDependencies => Outputs(ProjectLabels.ProjectDependency)
+                .Select(link => link.Target().AsProject()).OfType<ProjectNode>();
 
             public IEnumerable<ProjectNode> DependentProjects => Inputs(ProjectLabels.ProjectDependency)
                 .Select(link => link.Source().AsProject()).OfType<ProjectNode>();
@@ -94,9 +80,8 @@ namespace Repka.Graphs
                 .Select(link => PackageKey.Parse(link.TargetKey))
                 .Select(key => NuGetDescriptor.Of(key.Id, key.Version));
 
-            public IRecursable<PackageNode> PackageDependencies(string? targetFramework) => Outputs(PackageLabels.PackageDependency)
-                .Select(link => link.Target().AsPackage()).OfType<PackageNode>()
-                .Recurse(packageNode => packageNode.PackageDependencies(targetFramework));
+            public IEnumerable<PackageNode> PackageDependencies => Outputs(PackageLabels.PackageDependency)
+                .Select(link => link.Target().AsPackage()).OfType<PackageNode>();
         }
 
         public static class ProjectLabels
