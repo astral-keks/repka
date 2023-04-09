@@ -20,11 +20,11 @@ namespace Repka.Graphs
                     .Select(projectNode => projectNode.PackageId)
                     .OfType<NuGetIdentifier>()
                     .ToHashSet();
-                Inspection<NuGetDescriptor, GraphToken> packageTraversal = new();
+                Inspection<NuGetDescriptor, NuGetPackage> packageInspection = new();
                 ProgressPercentage packageProgress = Progress.Percent("Resolving packages", projectNodes.Count);
                 IEnumerable<GraphToken> packageTokens = projectNodes.AsParallel(8)
                     .Peek(packageProgress.Increment)
-                    .SelectMany(projectNode => GetPackageTokens(projectNode, packageIdsFromProjects, packageTraversal))
+                    .SelectMany(projectNode => GetPackageTokens(projectNode, packageIdsFromProjects, packageInspection))
                     .ToList();
                 foreach (var token in packageTokens)
                     graph.Add(token);
@@ -33,7 +33,7 @@ namespace Repka.Graphs
         }
 
         private IEnumerable<GraphToken> GetPackageTokens(ProjectNode projectNode, HashSet<NuGetIdentifier> packageIdsFromProjects,
-            Inspection<NuGetDescriptor, GraphToken> packageInspection)
+            Inspection<NuGetDescriptor, NuGetPackage> packageInspection)
         {
             if (projectNode.PackageId is not null)
             {
@@ -55,51 +55,61 @@ namespace Repka.Graphs
             }
         }
 
-        private ICollection<GraphToken> GetPackageTokens(NuGetDescriptor packageDescriptor, HashSet<NuGetIdentifier> packageIdsFromProjects, 
-            Inspection<NuGetDescriptor, GraphToken> packageInspection)
+        private IEnumerable<GraphToken> GetPackageTokens(NuGetDescriptor packageDescriptor, HashSet<NuGetIdentifier> packageIdsFromProjects,
+            Inspection<NuGetDescriptor, NuGetPackage> packageInspection)
+        {
+            foreach (var package in GetPackageDependencies(packageDescriptor, packageIdsFromProjects, packageInspection))
+            {
+                PackageKey packageKey = new(package);
+                yield return new GraphNodeToken(packageKey, PackageLabels.Package);
+
+                foreach (var assembly in package.Assemblies)
+                    yield return new GraphLinkToken(packageKey, assembly.Locaton ?? GraphKey.Null, PackageLabels.PackageAssembly)
+                        .Label(assembly.Framework.ToMoniker());
+
+                foreach (var frameworkReference in package.FrameworkReferences)
+                {
+                    yield return new GraphLinkToken(packageKey, frameworkReference.AssemblyName ?? GraphKey.Null, PackageLabels.PackageFrameworkReference)
+                        .Label(frameworkReference.Framework.ToMoniker());
+                }
+
+                foreach (var packageReference in package.PackageReferences)
+                {
+                    PackageKey? packageDependencyKey = default;
+                    if (packageReference.Descriptor is not null && !packageIdsFromProjects.Contains(packageReference.Descriptor.Id))
+                    {
+                        PackageKey packageReferenceKey = new(packageReference.Descriptor);
+                        yield return new GraphLinkToken(packageKey, packageReferenceKey, PackageLabels.PackageReference)
+                            .Label(packageReference.Framework.ToMoniker());
+
+                        NuGetDescriptor packageDependency = NuGetManager.DiscoverPackage(packageReference.Descriptor);
+                        packageDependencyKey = new(packageDependency);
+                    }
+
+                    yield return new GraphLinkToken(packageKey, packageDependencyKey ?? GraphKey.Null, PackageLabels.PackageDependency)
+                        .Label(packageReference.Framework.ToMoniker());
+                }
+            }
+        }
+
+        private ICollection<NuGetPackage> GetPackageDependencies(NuGetDescriptor packageDescriptor, HashSet<NuGetIdentifier> packageIdsFromProjects,
+            Inspection<NuGetDescriptor, NuGetPackage> packageInspection)
         {
             return packageInspection.InspectOrIgnore(packageDescriptor, () => visitPackage().ToList());
-            IEnumerable<GraphToken> visitPackage()
+            IEnumerable<NuGetPackage> visitPackage()
             {
                 NuGetPackage? package = NuGetManager.RestorePackage(packageDescriptor);
                 if (package is not null)
                 {
-                    PackageKey packageKey = new(package);
-                    yield return new GraphNodeToken(packageKey, PackageLabels.Package);
+                    yield return package;
 
-                    foreach (var assembly in package.Assemblies)
-                        yield return new GraphLinkToken(packageKey, assembly.Locaton ?? GraphKey.Null, PackageLabels.PackageAssembly)
-                            .Label(assembly.Framework.ToMoniker());
-
-                    foreach (var frameworkReference in package.FrameworkReferences)
+                    foreach (var packageReference in package.PackageReferences.Select(packageReference => packageReference.Descriptor).Distinct())
                     {
-                        yield return new GraphLinkToken(packageKey, frameworkReference.AssemblyName ?? GraphKey.Null, PackageLabels.PackageFrameworkReference)
-                            .Label(frameworkReference.Framework.ToMoniker());
-                    }
-
-                    HashSet<NuGetDescriptor> packageDependencies = new();
-                    foreach (var packageReference in package.PackageReferences)
-                    {
-                        PackageKey? packageDependencyKey = default;
-                        if (packageReference.Descriptor is not null && !packageIdsFromProjects.Contains(packageReference.Descriptor.Id))
+                        if (packageReference is not null && !packageIdsFromProjects.Contains(packageReference.Id))
                         {
-                            PackageKey packageReferenceKey = new(packageReference.Descriptor);
-                            yield return new GraphLinkToken(packageKey, packageReferenceKey, PackageLabels.PackageReference)
-                                .Label(packageReference.Framework.ToMoniker());
-
-                            NuGetDescriptor packageDependency = NuGetManager.DiscoverPackage(packageReference.Descriptor);
-                            packageDependencies.Add(packageDependency);
-                            packageDependencyKey = new(packageDependency);
+                            foreach (var packageDependency in GetPackageDependencies(packageReference, packageIdsFromProjects, packageInspection))
+                                yield return packageDependency;
                         }
-
-                        yield return new GraphLinkToken(packageKey, packageDependencyKey ?? GraphKey.Null, PackageLabels.PackageDependency)
-                            .Label(packageReference.Framework.ToMoniker());
-                    }
-
-                    foreach (var packageDependency in packageDependencies)
-                    {
-                        foreach (var token in GetPackageTokens(packageDependency, packageIdsFromProjects, packageInspection))
-                            yield return token;
                     }
                 }
             }

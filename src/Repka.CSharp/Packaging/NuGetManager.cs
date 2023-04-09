@@ -80,7 +80,7 @@ namespace Repka.Packaging
                     package = default;
 
                 return package;
-            })  ;
+            });
         }
     }
 }
