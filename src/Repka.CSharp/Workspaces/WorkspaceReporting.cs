@@ -15,19 +15,14 @@ namespace Repka.Workspaces
                     inspector = WorkspaceInspector.Default;
                 using (ReportWriter writer = provider.GetWriter(inspector.Root, "diagnostics"))
                 {
-                    List<IGrouping<string, Project>> projectGroups = workspace.CurrentSolution.Projects
-                        .GroupBy(project => inspector.GetProjectGroup(project))
-                        .ToList();
-                    IEnumerable<Report?> reports = projectGroups
-                        .OrderBy(projects => projects.Key)
-                        .SelectMany(projects => projects.AsParallel(8)
-                            .Select(project =>
-                            {
-                                Report? report = project.ToReport(inspector);
-                                if (report?.Records.Any() == true)
-                                    writer.Write(report);
-                                return report;
-                            }));
+                    IEnumerable<Report?> reports = workspace.CurrentSolution.Projects.AsParallel(8)
+                        .Select(project =>
+                        {
+                            Report? report = project.ToReport(inspector);
+                            if (report?.Records.Any() == true)
+                                writer.Write(report);
+                            return report;
+                        });
                     foreach (var report in reports)
                     {
                         yield return report ?? new();
@@ -42,7 +37,7 @@ namespace Repka.Workspaces
                 ? new Report()
                 {
                     Title = project.Name,
-                    Text = $"Project {project.Name} at {project.FilePath}",
+                    Text = $"Project {project.Name} at {inspector.StripRoot(project.FilePath)}",
                     Records = project.Documents
                     .AsParallel().WithDegreeOfParallelism(8)
                     .Select(document => document.ToReport(inspector))
@@ -60,7 +55,7 @@ namespace Repka.Workspaces
             return inspector.IsRelevantDocument(document)
                 ? new Report()
                 {
-                    Text = document.FilePath ?? document.Name,
+                    Text = inspector.StripRoot(document.FilePath) ?? document.Name,
                     Records = diagnostics
                         .Select(diagnostic => diagnostic.ToReport(inspector))
                         .OfType<Report>()
@@ -74,7 +69,7 @@ namespace Repka.Workspaces
             return inspector.IsRelevantDiagnostic(diagnostic)
                 ? new Report()
                 {
-                    Text = diagnostic.ToString(),
+                    Text = inspector.StripRoot(diagnostic.ToString()) ?? string.Empty,
                 }
                 : default;
         }

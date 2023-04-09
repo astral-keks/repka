@@ -20,13 +20,9 @@ namespace Repka.Workspaces
         public HashSet<DiagnosticSeverity>? ExcludeSeverities { get; init; }
         public HashSet<DiagnosticSeverity>? IncludeSeverities { get; init; }
 
-        public string GetProjectGroup(Project project)
+        public string? StripRoot(string? text)
         {
-            return new string(project.FilePath?
-                .Replace(Root, string.Empty)
-                .TrimStart(Path.DirectorySeparatorChar)
-                .TakeWhile(ch => ch != Path.DirectorySeparatorChar)
-                .ToArray());
+            return text?.Replace(Root, "~");
         }
 
         public bool IsRelevantProject(Project project)

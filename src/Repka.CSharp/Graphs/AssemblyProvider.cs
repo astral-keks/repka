@@ -17,7 +17,7 @@ namespace Repka.Graphs
             List<PackageNode> packageNodes = graph.Packages().ToList();
             ProgressPercentage packageProgress = Progress.Percent("Resolving package assemblies", packageNodes.Count);
             Inspection<PackageNode, AssemblyDescriptor> packageInspection = new();
-            IEnumerable<GraphToken> packageTokens = packageNodes.AsParallel(8)
+            IEnumerable<GraphToken> packageTokens = packageNodes//.AsParallel(8)
                 .Peek(packageProgress.Increment)
                 .SelectMany(packageNode => GetAssemblyTokens(GetPackageAssemblies(packageNode, packageInspection), packageNode))
                 .ToList();
@@ -28,7 +28,7 @@ namespace Repka.Graphs
             List<ProjectNode> projectNodes = graph.Projects().ToList();
             ProgressPercentage projectProgress = Progress.Percent("Resolving project assemblies", projectNodes.Count);
             Inspection<ProjectNode, AssemblyDescriptor> projectInspection = new();
-            IEnumerable<GraphToken> projectTokens = projectNodes.AsParallel(8)
+            IEnumerable<GraphToken> projectTokens = projectNodes//.AsParallel(8)
                 .Peek(projectProgress.Increment)
                 .SelectMany(projectNode => GetAssemblyTokens(GetProjectAssemblies(projectNode, projectInspection), projectNode))
                 .ToList();

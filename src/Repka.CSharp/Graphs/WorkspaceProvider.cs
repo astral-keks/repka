@@ -24,7 +24,7 @@ namespace Repka.Graphs
             Inspection<ProjectNode, ProjectReference> projectReferenceInspection = new();
             Inspection<ProjectNode, AssemblyDescriptor> assemblyDescriptorInspection = new();
             Inspection<AssemblyDescriptor, MetadataReference> metadataReferenceInspection = new();
-            IEnumerable<ProjectInfo> projectsInfo = projectNodes.AsParallel(8)                
+            IEnumerable<ProjectInfo> projectsInfo = projectNodes//.AsParallel(8)                
                 .Peek(projectProgress.Increment)
                 .Select(projectNode => CreateProject(projectNode,
                     projectReferenceInspection,

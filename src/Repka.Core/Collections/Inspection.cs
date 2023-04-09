@@ -15,9 +15,10 @@ namespace Repka.Collections
 
         public ICollection<TResult> InspectOrIgnore(TSource element, Func<ICollection<TResult>> create) => Inspect(element, create, Ignore);
 
-        public ICollection<TResult> InspectOrGet(TSource element, Func<ICollection<TResult>> create) => Inspect(element, create, Get);
+        public ICollection<TResult> InspectOrGet(TSource element, Func<ICollection<TResult>> create) => Inspect(element, create, Recall);
 
-        private ICollection<TResult> Inspect(TSource element, Func<ICollection<TResult>> create, Func<TSource, ICollection<TResult>?> recall)
+        private ICollection<TResult> Inspect(TSource element, Func<ICollection<TResult>> create, 
+            Func<ICollection<TResult>?, ICollection<TResult>?> reinspect)
         {
             ICollection<TResult>? results = default;
 
@@ -25,9 +26,15 @@ namespace Repka.Collections
             {
                 try
                 {
-                    results = !_history.ContainsKey(element)
-                        ? _history[element] = create()
-                        : recall(element);
+                    bool added = false;
+                    results = _history.GetOrAdd(element, _ =>
+                    {
+                        added = true;
+                        return create();
+                    });
+
+                    if (!added)
+                        results = reinspect(results);
                 }
                 finally
                 {
@@ -38,9 +45,9 @@ namespace Repka.Collections
             return results ?? new List<TResult>(0);
         }
 
-        private ICollection<TResult>? Get(TSource element) => _history[element];
+        private ICollection<TResult>? Recall(ICollection<TResult>? results) => results;
 
-        private ICollection<TResult>? Ignore(TSource _) => default;
+        private ICollection<TResult>? Ignore(ICollection<TResult>? _) => default;
     }
 
     public delegate ICollection<TSource> Inspector<TSource>(TSource element, Func<ICollection<TSource>> create);
