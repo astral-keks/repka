@@ -41,8 +41,10 @@ namespace Repka.Graphs
             ProgressPercentage diagnosticsProgress = Progress.Percent("Collecting syntax and semantics", documents.Count);
             documents.Peek(diagnosticsProgress.Increment).ForAll(document =>
             {
-                graph.Add(new SemanticAttribute(document));
-                graph.Add(new SyntaxAttribute(document));
+                GraphAttribute syntaxAttribute = new(WorkspaceAttributes.Syntax, document.GetSyntax);
+                graph.Document(document.FilePath)?.State.Set(syntaxAttribute);
+                GraphAttribute semanticAttribute = new(WorkspaceAttributes.Semantic, document.GetSemantic);
+                graph.Document(document.FilePath)?.State.Set(semanticAttribute);
             });
             diagnosticsProgress.Complete();
 

@@ -9,6 +9,8 @@ namespace Repka.Graphs
             .Select(node => node.AsDocument())
             .OfType<DocumentNode>();
 
+        public static DocumentNode? Document(this Graph graph, string? path) => path is not null ? graph.Document(new GraphKey(path)) : default;
+
         public static DocumentNode? Document(this Graph graph, GraphKey key) => graph.Node(key).AsDocument();
 
         public static DocumentNode? AsDocument(this GraphNode? node) => node?.Labels.Contains(DocumentLabels.Document) == true

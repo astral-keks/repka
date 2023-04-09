@@ -2,17 +2,22 @@
 {
     public abstract class GraphElement
     {
-        protected internal GraphElement(GraphToken token, Graph graph)
+        protected internal GraphElement(GraphToken token, GraphState state, Graph graph)
         {
             Token = token;
+            State = state;
             Graph = graph;
         }
 
-        public IEnumerable<GraphLabel> Labels => Token.Labels;
-
         public GraphToken Token { get; }
 
+        public GraphState State { get; }
+
         public Graph Graph { get; }
+
+        public IEnumerable<GraphLabel> Labels => Token.Labels;
+
+        public GraphAttribute Attribute(string name) => State.Attribute(name);
 
         public static bool operator ==(GraphElement? left, GraphElement? right) => Equals(left, right);
 

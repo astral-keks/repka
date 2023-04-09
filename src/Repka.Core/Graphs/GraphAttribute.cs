@@ -1,44 +1,45 @@
 ﻿namespace Repka.Graphs
 {
-    public abstract class GraphAttribute
+    public class GraphAttribute
     {
-        private readonly GraphKey _key;
-        private readonly Type _valueType;
-        private readonly Lazy<object?> _valueLazy;
+        private Lazy<object?>? _provider;
 
-        public static GraphAttribute<TValue> Of<TValue>(GraphKey key, Func<TValue?> factory) => new(key, factory);
-
-        protected GraphAttribute(GraphKey key, Type type, Func<object?> factory)
+        public GraphAttribute(string name, Func<object?>? factory = default)
         {
-            _key = key;
-            _valueType = type;
-            _valueLazy = new(factory);
+            Name = name;
+            if (factory is not null)
+                _provider = new(factory, true);
         }
 
-        public GraphKey Key => _key;
+        public string Name { get; }
 
-        public object? Value => _valueLazy.Value;
+        public TValue? GetValue<TValue>() => (TValue?)_provider?.Value;
+
+        public void SetValue<TValue>(Func<TValue> factory) => _provider = new(() => factory(), true);
+
+        public void SetValue<TValue>(TValue value) => SetValue(() => value);
+
+        public TValue Value<TValue>(Func<TValue> factory)
+        {
+            if (_provider is null)
+                _provider = new(() => factory(), true);
+            return GetValue<TValue>()!;
+        }
 
         public override bool Equals(object? obj)
         {
-            return obj is GraphAttribute value &&
-                   Equals(_key, value._key) &&
-                   Equals(_valueType, value._valueType);
+            return obj is GraphAttribute attribute &&
+                   Equals(Name, attribute.Name);
         }
 
         public override int GetHashCode()
         {
-            return HashCode.Combine(_valueType, _key);
+            return HashCode.Combine(Name);
         }
-    }
 
-    public class GraphAttribute<TValue> : GraphAttribute
-    {
-        public GraphAttribute(GraphKey key, Func<TValue?> factory)
-            : base(key, typeof(TValue), () => factory())
+        public override string ToString()
         {
+            return $"Name={Name}";
         }
-
-        public new TValue? Value => (TValue?)base.Value;
     }
 }

@@ -31,9 +31,12 @@ namespace Repka.Graphs
 
             public string Location => Key;
 
-            public AssemblyDescriptor Descriptor => new(Location);
+            public string? Name => Descriptor.Name;
 
-            public string Name => Path.GetFileNameWithoutExtension(Location);
+            public Version? Version => Descriptor.Version;
+
+            public AssemblyDescriptor Descriptor => Attribute(AssemblyAttributes.Descriptor)
+                .Value(() => new AssemblyDescriptor(Location));
 
             public PackageNode? Package => Inputs(AssemblyLabels.Assembly)
                 .Select(link => link.Source().AsPackage()).OfType<PackageNode>()
@@ -42,14 +45,19 @@ namespace Repka.Graphs
             public IEnumerable<ProjectNode> DependentProjects => Inputs(AssemblyLabels.AssemblyDependency)
                 .Select(link => link.Source()).OfType<ProjectNode>();
 
-            public IEnumerable<ProjectNode> DependentPackages => Inputs(AssemblyLabels.AssemblyDependency)
-                .Select(link => link.Source()).OfType<ProjectNode>();
+            public IEnumerable<PackageNode> DependentPackages => Inputs(AssemblyLabels.AssemblyDependency)
+                .Select(link => link.Source()).OfType<PackageNode>();
         }
 
         public static class AssemblyLabels
         {
             public const string Assembly = nameof(Assembly);
             public const string AssemblyDependency = nameof(AssemblyDependency);
+        }
+
+        public static class AssemblyAttributes
+        {
+            public const string Descriptor = nameof(Descriptor);
         }
     }
 }

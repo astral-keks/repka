@@ -23,7 +23,7 @@ namespace Repka.Graphs
             _keys = keys;
         }
 
-        public void Add(TItem item)
+        public TItem? Add(TItem item)
         {
             if (!_items.ContainsKey(item))
                 _items.Add(item, item);
@@ -34,6 +34,8 @@ namespace Repka.Graphs
                     _index.Add(key, new HashSet<TItem>(1));
                 _index[key].Add(item);
             }
+
+            return _items.ContainsKey(item) ? _items[item] : default;
         }
 
         public bool ContainsKey(TKey key)
@@ -44,11 +46,6 @@ namespace Repka.Graphs
         public bool Contains(TItem item)
         {
             return _items.ContainsKey(item);
-        }
-
-        public TItem? Find(TItem item)
-        {
-            return _items.ContainsKey(item) ? _items[item] : default;
         }
 
         public ISet<TItem> FindAll(TKey key)

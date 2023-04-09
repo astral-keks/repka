@@ -1,17 +1,16 @@
-﻿
-namespace Repka.Graphs
+﻿namespace Repka.Graphs
 {
     public class GraphLink : GraphElement
     {
         private readonly GraphLinkToken _token;
 
         protected GraphLink(GraphLink link)
-            : this(link._token, link.Graph)
+            : this(link._token, link.State, link.Graph)
         {
         }
 
-        protected internal GraphLink(GraphLinkToken token, Graph graph)
-            : base(token, graph)
+        protected internal GraphLink(GraphLinkToken token, GraphState state, Graph graph)
+            : base(token, state, graph)
         {
             _token = token;
         }

@@ -22,8 +22,10 @@ namespace Repka.Assemblies
             return File.Exists(Location);
         }
 
-        public Version? Version => _name.Value?.Version;
         public string? Name => _name.Value?.Name;
+
+        public Version? Version => _name.Value?.Version;
+
         private readonly Lazy<AssemblyName?> _name;
         private AssemblyName? GetName()
         {

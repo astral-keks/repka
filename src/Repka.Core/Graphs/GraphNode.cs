@@ -5,25 +5,17 @@
         private readonly GraphNodeToken _token;
 
         protected GraphNode(GraphNode node)
-            : this(node._token, node.Graph)
+            : this(node._token, node.State, node.Graph)
         {
         }
 
-        protected internal GraphNode(GraphNodeToken token, Graph graph)
-            : base(token, graph)
+        protected internal GraphNode(GraphNodeToken token, GraphState state, Graph graph)
+            : base(token, state, graph)
         {
             _token = token;
         }
 
         public GraphKey Key => _token.Key;
-
-        public TAttribute? Attribute<TAttribute>()
-            where TAttribute : GraphAttribute
-        {
-            return Graph.Attributes(Key)
-                .OfType<TAttribute>()
-                .SingleOrDefault();
-        }
 
         public IEnumerable<GraphNode> Siblings(GraphLabel subject)
         {
