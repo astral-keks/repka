@@ -2,7 +2,7 @@
 
 namespace Repka.Diagnostics
 {
-    public class FileSystemReportProvider : ReportProvider
+    public class FileReportProvider : ReportProvider
     {
         public override ReportWriter GetWriter(string store, string name)
         {
@@ -11,7 +11,7 @@ namespace Repka.Diagnostics
 
             string location = Path.Combine(directory, $"{name}.txt");
             StreamWriter writer = new(location);
-            return new FileSystemReportWriter(writer);
+            return new FileReportWriter(writer);
         }
     }
 }

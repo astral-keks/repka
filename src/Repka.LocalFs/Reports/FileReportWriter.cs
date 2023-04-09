@@ -1,10 +1,10 @@
 ﻿namespace Repka.Diagnostics
 {
-    internal class FileSystemReportWriter : ReportWriter
+    internal class FileReportWriter : ReportWriter
     {
         private readonly TextWriter _writer;
 
-        public FileSystemReportWriter(TextWriter writer)
+        public FileReportWriter(TextWriter writer)
         {
             _writer = writer;
         }

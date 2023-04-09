@@ -4,9 +4,7 @@ using Repka.Diagnostics;
 using Repka.Workspaces;
 using static Repka.Graphs.WorkspaceDsl;
 using static Repka.Graphs.ProjectDsl;
-using static Repka.Graphs.AssemblyDsl;
 using Repka.Assemblies;
-using Repka.FileSystems;
 using Microsoft.CodeAnalysis.Text;
 using static Repka.Graphs.DocumentDsl;
 
@@ -15,11 +13,11 @@ namespace Repka.Graphs
     public class WorkspaceProvider : GraphProvider
     {
         public ReportProvider? ReportProvider { get; init; }
+        public WorkspaceInspector WorkspaceInspector { get; init; }
 
         public override void AddTokens(GraphKey key, Graph graph)
         {
             AdhocWorkspace workspace = new();
-            workspace.AddSolution(CreateSolution(key));
 
             List<ProjectNode> projectNodes = graph.Projects().ToList();
             ProgressPercentage projectProgress = Progress.Percent("Creating workspace", projectNodes.Count);
@@ -43,7 +41,7 @@ namespace Repka.Graphs
             {
                 GraphAttribute syntaxAttribute = new(WorkspaceAttributes.Syntax, document.GetSyntax);
                 graph.Document(document.FilePath)?.State.Set(syntaxAttribute);
-                GraphAttribute semanticAttribute = new(WorkspaceAttributes.Semantic, document.GetSemantic);
+                GraphAttribute semanticAttribute = new(WorkspaceAttributes.Semantic, document.GetSemantic); ;
                 graph.Document(document.FilePath)?.State.Set(semanticAttribute);
             });
             diagnosticsProgress.Complete();
@@ -51,15 +49,10 @@ namespace Repka.Graphs
             if (ReportProvider is not null)
             {
                 diagnosticsProgress = Progress.Percent("Reporting diagnostics", projectNodes.Count);
-                ReportProvider.Report(workspace).ForAll(_ => diagnosticsProgress.Increment());
+                ReportProvider.Report(workspace, WorkspaceInspector with { Root = key })
+                    .ForAll(_ => diagnosticsProgress.Increment());
                 diagnosticsProgress.Complete();
             }
-        }
-
-        private SolutionInfo CreateSolution(GraphKey root)
-        {
-            string path = FileSystemPaths.Aux(root, "all.sln");
-            return SolutionInfo.Create(SolutionId.CreateNewId(), VersionStamp.Create(), path);
         }
 
         private ProjectInfo CreateProject(ProjectNode projectNode,
@@ -75,6 +68,8 @@ namespace Repka.Graphs
             List<DocumentInfo> documents = projectNode.Documents.AsParallel()
                 .Select(documentNode => CreateDocument(documentNode, projectNode))
                 .ToList();
+            if (!metadataReferences.Any(r => r.Display?.Contains("mscorlib") == true))
+                ;
             return ProjectInfo.Create(projectNode.Id, VersionStamp.Create(), projectNode.Name, projectNode.Name, LanguageNames.CSharp,
                 filePath: projectNode.Location, documents: documents, metadataReferences: metadataReferences, projectReferences: projectReferences);
         }

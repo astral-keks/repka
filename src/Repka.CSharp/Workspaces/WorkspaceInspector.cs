@@ -10,6 +10,9 @@ namespace Repka.Workspaces
             IncludeSeverities = new() { DiagnosticSeverity.Error }
         };
 
+        public string Root { get; init; }
+        public string? ProjectMask { get; init; }
+        public string? DocumentMask { get; init; }
         public HashSet<string>? IncludeProjects { get; init; }
         public HashSet<string>? ExcludeProjects { get; init; }
         public HashSet<string>? ExcludeErrors { get; init; }
@@ -17,9 +20,24 @@ namespace Repka.Workspaces
         public HashSet<DiagnosticSeverity>? ExcludeSeverities { get; init; }
         public HashSet<DiagnosticSeverity>? IncludeSeverities { get; init; }
 
+        public string GetProjectGroup(Project project)
+        {
+            return new string(project.FilePath?
+                .Replace(Root, string.Empty)
+                .TrimStart(Path.DirectorySeparatorChar)
+                .TakeWhile(ch => ch != Path.DirectorySeparatorChar)
+                .ToArray());
+        }
+
         public bool IsRelevantProject(Project project)
         {
-            return IsMatch(project.Name, IncludeProjects, ExcludeProjects);
+            return (ProjectMask is null || project.FilePath?.Contains(ProjectMask) == true) && 
+                IsMatch(project.Name, IncludeProjects, ExcludeProjects);
+        }
+
+        public bool IsRelevantDocument(Document document)
+        {
+            return (DocumentMask is null || document.FilePath?.Contains(DocumentMask) == true);
         }
 
         public bool IsRelevantDiagnostic(Diagnostic diagnostic)

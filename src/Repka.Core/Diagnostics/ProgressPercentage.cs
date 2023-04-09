@@ -12,6 +12,8 @@
             _progress = progress;
             _title = title;
             _total = total;
+
+            _progress.Start($"{_title}: ...");
         }
 
         public int Value => (int)Math.Round((double)_value / _total * 100);
@@ -40,7 +42,7 @@
 
         public void Complete()
         {
-            _progress.Finish($"{_title}: {Value}%");
+            _progress.Finish($"{_title}: done");
         }
 
         public void Reset()

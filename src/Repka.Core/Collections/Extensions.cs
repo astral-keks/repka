@@ -48,7 +48,7 @@
 
         public static ParallelQuery<TSource> AsParallel<TSource>(this IEnumerable<TSource> source, int degreeOfParallelism)
         {
-            return source.AsParallel().WithDegreeOfParallelism(degreeOfParallelism);
+            return source.AsParallel().WithDegreeOfParallelism(degreeOfParallelism).WithMergeOptions(ParallelMergeOptions.NotBuffered);
         }
 
         public static IEnumerable<TSource> AsEnumerable<TSource>(this TSource source)
