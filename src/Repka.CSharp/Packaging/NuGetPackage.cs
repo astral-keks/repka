@@ -63,29 +63,31 @@ namespace Repka.Packaging
         {
             List<NuGetAssembly> assemblies;
             if (DllsWithTfm.Any())
-                assemblies = DllsWithTfm.Select(dll => new NuGetAssembly(dll.Path, dll.Tfm.Framework)).ToList();
+                assemblies = DllsWithTfm
+                    .Select(dll => new NuGetAssembly(ResolveFile(dll.Path), dll.Tfm.Framework))
+                    .ToList();
             else
                 assemblies = NuGetMonikers.AllFrameworks
                     .SelectMany(framework => GetFiles(".dll")
-                    .Select(dll => new NuGetAssembly(dll, framework)))
+                    .Select(dll => new NuGetAssembly(ResolveFile(dll), framework)))
                     .ToList();
 
             return assemblies;
         }
 
-        private IReadOnlyList<(NuGetMoniker Tfm, string? Path)> DllsWithTfm => _dllsWithTfm.Value;
-        private readonly Lazy<List<(NuGetMoniker Tfm, string? Path)>> _dllsWithTfm;
+        private IReadOnlyList<(NuGetMoniker Tfm, string Path)> DllsWithTfm => _dllsWithTfm.Value;
+        private readonly Lazy<List<(NuGetMoniker Tfm, string Path)>> _dllsWithTfm;
         private static readonly Regex _libRegex = new(@"^lib[/\\]([^/\\]+)[/\\][^/\\]+$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
         private static readonly Regex _refRegex = new(@"^ref[/\\]([^/\\]+)[/\\][^/\\]+$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-        private List<(NuGetMoniker Tfm, string? Path)> GetDllsWithTfm()
+        private List<(NuGetMoniker Tfm, string Path)> GetDllsWithTfm()
         {
-            List<(NuGetMoniker Tfm, string? Path)> dllsWithTfm = GetDlls(_libRegex);
+            List<(NuGetMoniker Tfm, string Path)> dllsWithTfm = GetDlls(_libRegex).ToList();
             if (!dllsWithTfm.Any())
-                dllsWithTfm = GetDlls(_refRegex);
+                dllsWithTfm = GetDlls(_refRegex).ToList();
             return dllsWithTfm;
         }
 
-        private List<(NuGetMoniker Tfm, string? Path)> GetDlls(Regex regex)
+        private IEnumerable<(NuGetMoniker Tfm, string Path)> GetDlls(Regex regex)
         {
             return GetFiles()
                 .Where(path => 
@@ -95,25 +97,19 @@ namespace Repka.Packaging
                 .Where(match => match.Success)
                 .Select(match => (Tfm: NuGetMoniker.Resolve(match.Groups[1].Value), Path: match.Value))
                 .Where(dll => dll.Tfm is not null)
-                .OfType<(NuGetMoniker Tfm, string? Path)>()
-                .Select(dll =>
-                {
-                    if (dll.Path is not null)
-                    {
-                        dll = dll with
-                        {
-                            Path = Path.Combine(_location, dll.Path)
-                                .Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar)
-                        };
-                    }
-                    return dll;
-                })
-                .ToList();
+                .OfType<(NuGetMoniker Tfm, string Path)>();
         }
 
         private IEnumerable<string> GetFiles(string? extension = default)
         {
             return _files.Where(path => extension is null || path.EndsWith(extension, StringComparison.OrdinalIgnoreCase));
+        }
+
+        private string? ResolveFile(string? path)
+        {
+            if (path is not null)
+                path = Path.Combine(_location, path).Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
+            return path;
         }
 
         public override bool Equals(object? obj)

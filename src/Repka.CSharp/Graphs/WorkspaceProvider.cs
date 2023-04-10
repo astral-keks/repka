@@ -68,8 +68,6 @@ namespace Repka.Graphs
             List<DocumentInfo> documents = projectNode.Documents.AsParallel()
                 .Select(documentNode => CreateDocument(documentNode, projectNode))
                 .ToList();
-            if (!metadataReferences.Any(r => r.Display?.Contains("mscorlib") == true))
-                ;
             return ProjectInfo.Create(projectNode.Id, VersionStamp.Create(), projectNode.Name, projectNode.Name, LanguageNames.CSharp,
                 filePath: projectNode.Location, documents: documents, metadataReferences: metadataReferences, projectReferences: projectReferences);
         }

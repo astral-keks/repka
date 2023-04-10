@@ -16,6 +16,7 @@ namespace Repka.Packaging
         public static readonly NuGetMoniker NetCoreApp22 = new("netcoreapp2.2");
         public static readonly NuGetMoniker NetCoreApp30 = new("netcoreapp3.0");
         public static readonly NuGetMoniker NetCoreApp31 = new("netcoreapp3.1");
+        public static readonly NuGetMoniker NetStandard00 = new("netstandard0.0");
         public static readonly NuGetMoniker NetStandard10 = new("netstandard1.0");
         public static readonly NuGetMoniker NetStandard11 = new("netstandard1.1");
         public static readonly NuGetMoniker NetStandard12 = new("netstandard1.2");
@@ -53,6 +54,7 @@ namespace Repka.Packaging
             NetCoreApp22,
             NetCoreApp30,
             NetCoreApp31,
+            NetStandard00,
             NetStandard10,
             NetStandard11,
             NetStandard12,
