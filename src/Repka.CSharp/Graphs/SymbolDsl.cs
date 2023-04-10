@@ -10,7 +10,7 @@ namespace Repka.Graphs
 
         public static SymbolNode? Symbol(this Graph graph, GraphKey key) => graph.Node(key).AsSymbol();
 
-        public static SymbolNode? AsSymbol(this GraphNode? node) => 
+        public static SymbolNode? AsSymbol(this GraphNode? node) =>
             node?.Labels.Contains(SymbolLabels.IsSymbol) == true ? new(node) : default;
 
         public class SymbolNode : GraphNode
@@ -18,6 +18,10 @@ namespace Repka.Graphs
             public SymbolNode(GraphNode node) : base(node) { }
 
             public GraphKey Name => Key;
+
+            public int Size => Labels.Find(SymbolLabels.SymbolSize)
+                .Map(label => int.TryParse(label.Value, out int size) ? size : 0)
+                .OrElseDefault();
 
             public bool IsType => Labels.Contains(SymbolLabels.IsType);
 
@@ -28,7 +32,7 @@ namespace Repka.Graphs
             public bool IsMethod => Labels.Contains(SymbolLabels.IsMethod);
 
             public DocumentNode Definition => Definitions.Single();
- 
+
             public IEnumerable<DocumentNode> Definitions => Inputs(SymbolLabels.DefinesSymbol)
                 .Select(link => link.Source().AsDocument()).OfType<DocumentNode>();
 
@@ -43,6 +47,8 @@ namespace Repka.Graphs
             public const string IsField = nameof(IsField);
             public const string IsProperty = nameof(IsProperty);
             public const string IsMethod = nameof(IsMethod);
+
+            public const string SymbolSize = nameof(SymbolSize);
 
             public const string DefinesSymbol = nameof(DefinesSymbol);
 

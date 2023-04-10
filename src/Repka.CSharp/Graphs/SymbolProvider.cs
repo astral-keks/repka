@@ -97,7 +97,9 @@ namespace Repka.Graphs
             if (symbol is not null)
             {
                 GraphKey symbolKey = symbol.ToDisplayString(SymbolFormat.Default);
-                yield return new GraphNodeToken(symbolKey, SymbolLabels.IsSymbol, label);
+                int symbolSize = syntax.ToString().Count(ch => ch == '\n') + 1;
+                GraphLabel symbolSizeLabel = new(SymbolLabels.SymbolSize, symbolSize.ToString());
+                yield return new GraphNodeToken(symbolKey, SymbolLabels.IsSymbol, symbolSizeLabel, label);
 
                 GraphKey fileKey = file.FullName;
                 yield return new GraphLinkToken(fileKey, symbolKey, SymbolLabels.DefinesSymbol);

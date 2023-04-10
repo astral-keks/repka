@@ -1,23 +1,38 @@
-﻿namespace Repka.Graphs
+﻿using Repka.Collections;
+
+namespace Repka.Graphs
 {
     public readonly struct GraphLabel
     {
         public static implicit operator string(GraphLabel label) => label.Value;
         public static implicit operator GraphLabel(string? value) => new(value);
-        public static implicit operator GraphTag(GraphLabel label) => label.Value;
-        public static implicit operator GraphLabel(GraphTag tag) => new(tag.ToString());
+
         public GraphLabel(string? value)
         {
+            Name = string.Empty;
             Value = value ?? string.Empty;
         }
 
-        public readonly string Value { get; }
+        public GraphLabel(string name, string? value)
+        {
+            Name = name;
+            Value = value ?? string.Empty;
+        }
 
-        public override string ToString() => Value;
+        public string Name { get; }
+        public string Value { get; }
+
+        public override string ToString() => !string.IsNullOrEmpty(Name)
+            ? $"{Name}:{Value}"
+            : Value;
     }
 
     public static class GraphLabelExtensions
     {
+        public static IOptional<GraphLabel> Find(this IEnumerable<GraphLabel> source, string name) =>
+            source.FirstOrDefault(label => label.Name == name)
+            .ToOptional();
+
         public static bool ContainsAll(this IEnumerable<GraphLabel> source, params GraphLabel[] labels) =>
             source.ContainsAll(labels.AsEnumerable());
         public static bool ContainsAll(this IEnumerable<GraphLabel> source, IEnumerable<GraphLabel> labels)

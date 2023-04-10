@@ -1,6 +1,7 @@
 ﻿using Repka.Collections;
 using Repka.Diagnostics;
 using Repka.FileSystems;
+using Repka.Strings;
 using static Repka.Graphs.DocumentDsl;
 using static Repka.Graphs.ProjectDsl;
 
@@ -19,11 +20,11 @@ namespace Repka.Graphs
                 Dictionary<string, List<ProjectNode>> projectsByDocuments = graph.Projects()
                     .SelectMany(projectNode => projectNode.DocumentReferences
                         .Select(documentReference => (Document: documentReference, Project: projectNode)))
-                    .GroupBy(record => record.Document, record => record.Project)
-                    .ToDictionary(group => group.Key, group => group.ToList());
+                    .GroupBy(record => record.Document, record => record.Project, StringComparer.OrdinalIgnoreCase)
+                    .ToDictionary(group => group.Key, group => group.ToList(), StringComparer.OrdinalIgnoreCase);
                 Dictionary<string, List<ProjectNode>> projectsByDirectory = graph.Projects()
-                    .GroupBy(projectNode => projectNode.Directory)
-                    .ToDictionary(group => group.Key, group => group.ToList());
+                    .GroupBy(projectNode => projectNode.Directory, StringComparer.OrdinalIgnoreCase)
+                    .ToDictionary(group => group.Key, group => group.ToList(), StringComparer.OrdinalIgnoreCase);
                 
                 IEnumerable<GraphToken> tokens = documentFiles.AsParallel(8)
                     .Peek(documentProgress.Increment)
