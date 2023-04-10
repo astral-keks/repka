@@ -1,4 +1,5 @@
 ﻿using Microsoft.Build.Construction;
+using Repka.Diagnostics;
 using Repka.Solutions;
 using static Repka.Graphs.SolutionDsl;
 
@@ -11,16 +12,16 @@ namespace Repka.Graphs
             DirectoryInfo directory = new(key);
             if (directory.Exists)
             {
-                int i = 0;
-                Progress.Start($"Solutions");
-                foreach (var solutionFile in directory.EnumerateFiles("*.sln", SearchOption.AllDirectories))
+                FileInfo[] solutionFiles = directory.GetFiles("*.sln", SearchOption.AllDirectories);
+                ProgressPercentage solutionProgress = Progress.Percent("Collecting solutions", solutionFiles.Length);
+                foreach (var solutionFile in solutionFiles)
                 {
-                    Progress.Notify($"Solutions: {++i}");
+                    solutionProgress.Increment();
                     foreach (var token in GetSolutionTokens(solutionFile))
                         graph.Add(token);
 
                 }
-                Progress.Finish($"Solutions: {i}");
+                solutionProgress.Complete();
             }
         }
 
@@ -30,12 +31,12 @@ namespace Repka.Graphs
             if (solution is not null)
             {
                 GraphKey solutionKey = new(solutionFile.FullName);
-                yield return new GraphNodeToken(solutionKey, SolutionLabels.IsSolution);
+                yield return new GraphNodeToken(solutionKey, SolutionLabels.Solution);
 
                 foreach (var project in solution.ProjectsInOrder)
                 {
                     GraphKey projectKey = new(project.AbsolutePath);
-                    yield return new GraphLinkToken(solutionKey, projectKey, SolutionLabels.ContainsProject);
+                    yield return new GraphLinkToken(solutionKey, projectKey, SolutionLabels.SolutionProject);
                 }
             }
         }

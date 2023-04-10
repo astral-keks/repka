@@ -20,6 +20,7 @@ namespace Repka.Frameworks
             new List<string>()
             {
                 "mscorlib",
+                "netstandard",
                 "System",
                 "System.Core",
                 "System.Data",

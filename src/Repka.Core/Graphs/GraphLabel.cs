@@ -4,6 +4,8 @@
     {
         public static implicit operator string(GraphLabel label) => label.Value;
         public static implicit operator GraphLabel(string? value) => new(value);
+        public static implicit operator GraphTag(GraphLabel label) => label.Value;
+        public static implicit operator GraphLabel(GraphTag tag) => new(tag.ToString());
         public GraphLabel(string? value)
         {
             Value = value ?? string.Empty;
@@ -11,10 +13,7 @@
 
         public readonly string Value { get; }
 
-        public override string ToString()
-        {
-            return Value;
-        }
+        public override string ToString() => Value;
     }
 
     public static class GraphLabelExtensions

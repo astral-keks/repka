@@ -2,7 +2,7 @@
 using Repka.Caching;
 using Repka.Graphs;
 
-namespace Repka.Graphs
+namespace Repka.Symbols
 {
     internal class SymbolCache : IDisposable
     {

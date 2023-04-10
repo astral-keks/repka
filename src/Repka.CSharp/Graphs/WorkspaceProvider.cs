@@ -13,7 +13,7 @@ namespace Repka.Graphs
     public class WorkspaceProvider : GraphProvider
     {
         public ReportProvider? ReportProvider { get; init; }
-        public WorkspaceInspector WorkspaceInspector { get; init; }
+        public WorkspaceInspector WorkspaceInspector { get; init; } = WorkspaceInspector.Default;
 
         public override void AddTokens(GraphKey key, Graph graph)
         {

@@ -1,5 +1,8 @@
 ﻿using Repka.Collections;
+using Repka.Diagnostics;
 using Repka.FileSystems;
+using System.Collections;
+using static Repka.Graphs.FileSystemDsl;
 
 namespace Repka.Graphs
 {
@@ -11,11 +14,11 @@ namespace Repka.Graphs
         {
             FileSystemEntry root = new(key);
 
-            int i = 0;
-            Progress.Start("Files and folders");
-            foreach (var token in GetFileSystemTokens(FileSystem.GetEntries(root).Peek(() => Progress.Notify($"Files and folders: {++i}"))))
+            ProgressCounter progress = Progress.Count("Files system entries");
+            IEnumerable<FileSystemEntry> entries = FileSystem.GetEntries(root);
+            foreach (var token in GetFileSystemTokens(entries.Peek(progress.Increment)))
                 graph.Add(token);
-            Progress.Finish($"Files and folders: {i}");
+            progress.Complete();
         }
 
         private IEnumerable<GraphToken> GetFileSystemTokens(IEnumerable<FileSystemEntry> entries)
@@ -37,7 +40,7 @@ namespace Repka.Graphs
                     if (source is not null)
                         yield return source;
 
-                    yield return new GraphLinkToken(sourceKey, targetKey, FileSystemLabels.FsRef);
+                    yield return new GraphLinkToken(sourceKey, targetKey, FileSystemLabels.Reference);
                 }
             }
 
@@ -48,7 +51,7 @@ namespace Repka.Graphs
                     yield return new GraphNodeToken(directory, FileSystemLabels.Directory);
                     foreach (var item in items)
                     {
-                        yield return new GraphLinkToken(directory, item, FileSystemLabels.FsRef);
+                        yield return new GraphLinkToken(directory, item, FileSystemLabels.Reference);
                     }
                 }
             }
@@ -72,6 +75,31 @@ namespace Repka.Graphs
 
             return token;
         }
+    }
 
+    internal class FileSystemGrouping : IEnumerable<(string Directory, HashSet<GraphKey> Items)>
+    {
+        private readonly Dictionary<string, HashSet<GraphKey>> _keysByDirectory = new();
+
+        public void Add(GraphKey key)
+        {
+            string? directory = Path.GetDirectoryName(key);
+            if (directory is not null)
+            {
+                if (!_keysByDirectory.ContainsKey(directory))
+                    _keysByDirectory[directory] = new();
+                _keysByDirectory[directory].Add(key);
+            }
+        }
+
+        public IEnumerator<(string Directory, HashSet<GraphKey> Items)> GetEnumerator()
+        {
+            return _keysByDirectory.Select(entry => (entry.Key, entry.Value)).GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
     }
 }

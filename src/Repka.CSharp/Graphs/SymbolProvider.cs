@@ -2,6 +2,7 @@
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Repka.Collections;
 using Repka.Diagnostics;
+using Repka.Symbols;
 using System.Collections.Immutable;
 using static Repka.Graphs.DocumentDsl;
 using static Repka.Graphs.SymbolDsl;
@@ -32,30 +33,33 @@ namespace Repka.Graphs
         private IEnumerable<GraphToken> GetDeclarationTokens(DocumentNode documentNode)
         {
             FileInfo file = documentNode.File;
-            SyntaxNode syntax = documentNode.Syntax() ?? throw new ArgumentException($"Document {documentNode} has no syntax attribute");
-            SemanticModel semantic = documentNode.Semantic() ?? throw new ArgumentException($"Document {documentNode} has no semantic attribute"); ;
+            SyntaxNode? syntax = documentNode.Syntax();
+            SemanticModel? semantic = documentNode.Semantic();
 
-            foreach (var descendant in syntax.DescendantNodes())
+            if (syntax is not null && semantic is not null)
             {
-                if (descendant is BaseTypeDeclarationSyntax typeDeclarationSyntax)
+                foreach (var descendant in syntax.DescendantNodes())
                 {
-                    foreach (var token in GetTypeDeclarationTokens(typeDeclarationSyntax, semantic, file))
-                        yield return token;
-                }
-                else if (descendant is FieldDeclarationSyntax fieldDeclarationSyntax)
-                {
-                    foreach (var token in GetFieldDeclarationTokens(fieldDeclarationSyntax, semantic, file))
-                        yield return token;
-                }
-                else if (descendant is PropertyDeclarationSyntax propertyDeclarationSyntax)
-                {
-                    foreach (var token in GetPropertyDeclarationTokens(propertyDeclarationSyntax, semantic, file))
-                        yield return token;
-                }
-                else if (descendant is MethodDeclarationSyntax methodDeclarationSyntax)
-                {
-                    foreach (var token in GetMethodDeclarationTokens(methodDeclarationSyntax, semantic, file))
-                        yield return token;
+                    if (descendant is BaseTypeDeclarationSyntax typeDeclarationSyntax)
+                    {
+                        foreach (var token in GetTypeDeclarationTokens(typeDeclarationSyntax, semantic, file))
+                            yield return token;
+                    }
+                    else if (descendant is FieldDeclarationSyntax fieldDeclarationSyntax)
+                    {
+                        foreach (var token in GetFieldDeclarationTokens(fieldDeclarationSyntax, semantic, file))
+                            yield return token;
+                    }
+                    else if (descendant is PropertyDeclarationSyntax propertyDeclarationSyntax)
+                    {
+                        foreach (var token in GetPropertyDeclarationTokens(propertyDeclarationSyntax, semantic, file))
+                            yield return token;
+                    }
+                    else if (descendant is MethodDeclarationSyntax methodDeclarationSyntax)
+                    {
+                        foreach (var token in GetMethodDeclarationTokens(methodDeclarationSyntax, semantic, file))
+                            yield return token;
+                    }
                 }
             }
         }
@@ -63,15 +67,15 @@ namespace Repka.Graphs
         private IEnumerable<GraphToken> GetTypeDeclarationTokens(BaseTypeDeclarationSyntax typeSyntax, SemanticModel semantic, FileInfo file)
         {
             ISymbol? typeSymbol = semantic.GetDeclaredSymbol(typeSyntax);
-            return CreateSymbolTokens(typeSymbol, SymbolLabels.IsType, file);
+            return CreateSymbolTokens(typeSymbol, typeSyntax, file, SymbolLabels.IsType);
         }
 
         private IEnumerable<GraphToken> GetFieldDeclarationTokens(FieldDeclarationSyntax fieldSyntax, SemanticModel semantic, FileInfo file)
         {
-            foreach (var variable in fieldSyntax.Declaration.Variables)
+            foreach (var variableSyntax in fieldSyntax.Declaration.Variables)
             {
-                ISymbol? fieldSymbol = semantic.GetDeclaredSymbol(variable);
-                foreach (var token in CreateSymbolTokens(fieldSymbol, SymbolLabels.IsField, file))
+                ISymbol? fieldSymbol = semantic.GetDeclaredSymbol(variableSyntax);
+                foreach (var token in CreateSymbolTokens(fieldSymbol, variableSyntax, file, SymbolLabels.IsField))
                     yield return token;
             }
         }
@@ -79,16 +83,16 @@ namespace Repka.Graphs
         private IEnumerable<GraphToken> GetPropertyDeclarationTokens(PropertyDeclarationSyntax propertySyntax, SemanticModel semantic, FileInfo file)
         {
             ISymbol? propertySymbol = semantic.GetDeclaredSymbol(propertySyntax);
-            return CreateSymbolTokens(propertySymbol, SymbolLabels.IsProperty, file);
+            return CreateSymbolTokens(propertySymbol, propertySyntax, file, SymbolLabels.IsProperty);
         }
 
         private IEnumerable<GraphToken> GetMethodDeclarationTokens(MethodDeclarationSyntax methodSyntax, SemanticModel semantic, FileInfo file)
         {
             ISymbol? methodSymbol = semantic.GetDeclaredSymbol(methodSyntax);
-            return CreateSymbolTokens(methodSymbol, SymbolLabels.IsMethod, file);
+            return CreateSymbolTokens(methodSymbol, methodSyntax, file, SymbolLabels.IsMethod);
         }
 
-        private IEnumerable<GraphToken> CreateSymbolTokens(ISymbol? symbol, GraphLabel label, FileInfo file)
+        private IEnumerable<GraphToken> CreateSymbolTokens(ISymbol? symbol, SyntaxNode syntax, FileInfo file, GraphLabel label)
         {
             if (symbol is not null)
             {
@@ -104,13 +108,16 @@ namespace Repka.Graphs
         private IEnumerable<GraphToken> GetUsageTokens(DocumentNode documentNode, ISet<GraphKey> scope)
         {
             FileInfo file = documentNode.File;
-            SyntaxNode syntax = documentNode.Syntax() ?? throw new ArgumentException($"Document {documentNode} has no syntax attribute");
-            SemanticModel semantic = documentNode.Semantic() ?? throw new ArgumentException($"Document {documentNode} has no semantic attribute"); ;
+            SyntaxNode? syntax = documentNode.Syntax();
+            SemanticModel? semantic = documentNode.Semantic();
 
-            foreach (var linkToken in GetUsageTokens(syntax, semantic, file))
+            if (syntax is not null && semantic is not null)
             {
-                if (scope.Contains(linkToken.SourceKey) || scope.Contains(linkToken.TargetKey))
-                    yield return linkToken;
+                foreach (var linkToken in GetUsageTokens(syntax, semantic, file))
+                {
+                    if (scope.Contains(linkToken.SourceKey) || scope.Contains(linkToken.TargetKey))
+                        yield return linkToken;
+                }
             }
         }
 

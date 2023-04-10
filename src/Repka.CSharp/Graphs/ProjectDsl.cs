@@ -3,6 +3,7 @@ using Repka.Assemblies;
 using Repka.Packaging;
 using static Repka.Graphs.DocumentDsl;
 using static Repka.Graphs.PackageDsl;
+using static Repka.Graphs.SolutionDsl;
 
 namespace Repka.Graphs
 {
@@ -82,6 +83,10 @@ namespace Repka.Graphs
 
             public IEnumerable<PackageNode> PackageDependencies => Outputs(PackageLabels.PackageDependency)
                 .Select(link => link.Target().AsPackage()).OfType<PackageNode>();
+
+
+            public IEnumerable<SolutionNode> Solutions => Inputs(SolutionLabels.SolutionProject)
+                .Select(link => link.Source().AsSolution()).OfType<SolutionNode>();
         }
 
         public static class ProjectLabels

@@ -1,6 +1,6 @@
 ﻿using Microsoft.CodeAnalysis;
 
-namespace Repka.Graphs
+namespace Repka.Symbols
 {
     internal static class SymbolFormat
     {
