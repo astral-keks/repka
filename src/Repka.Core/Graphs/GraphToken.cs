@@ -12,11 +12,12 @@
         }
 
         public IReadOnlySet<GraphKey> Keys => _keys;
-        public IEnumerable<GraphLabel> Labels => _labels;
-        
-        public GraphToken Label(params GraphLabel[] labels) => Label(labels.AsEnumerable());
-        public GraphToken Label(IEnumerable<string> labels) => Label(labels.Select(label => new GraphLabel(label)));
-        public GraphToken Label(IEnumerable<GraphLabel> labels)
+        public IReadOnlySet<GraphLabel> Labels => _labels;
+
+        public GraphToken Mark(string name, string value) => Mark(new GraphLabel(name, value));
+        public GraphToken Mark(params GraphLabel[] labels) => Mark(labels.AsEnumerable());
+        public GraphToken Mark(IEnumerable<string> labels) => Mark(labels.Select(label => new GraphLabel(label)));
+        public GraphToken Mark(IEnumerable<GraphLabel> labels)
         {
             foreach (var label in labels.Where(label => !string.IsNullOrWhiteSpace(label.Value)))
                 _labels.Add(label);

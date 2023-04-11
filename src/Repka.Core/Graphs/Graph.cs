@@ -11,13 +11,13 @@
             {
                 GraphState state = new();
                 GraphNode node = new(nodeToken, state, this);
-                _nodes.Add(node)?.Token.Label(nodeToken.Labels);
+                _nodes.Add(node)?.Token.Mark(nodeToken.Labels);
             }
             else if (token is GraphLinkToken linkToken)
             {
                 GraphState state = new();
                 GraphLink link = new(linkToken, state, this);
-                _links.Add(link)?.Token.Label(linkToken.Labels);
+                _links.Add(link)?.Token.Mark(linkToken.Labels);
             }
         }
 

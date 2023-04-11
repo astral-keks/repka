@@ -66,12 +66,12 @@ namespace Repka.Graphs
 
                 foreach (var assembly in package.Assemblies)
                     yield return new GraphLinkToken(packageKey, assembly.Locaton ?? GraphKey.Null, PackageLabels.PackageAssembly)
-                        .Label(assembly.Framework.ToMoniker());
+                        .Mark(assembly.Framework.ToMoniker());
 
                 foreach (var frameworkReference in package.FrameworkReferences)
                 {
                     yield return new GraphLinkToken(packageKey, frameworkReference.AssemblyName ?? GraphKey.Null, PackageLabels.PackageFrameworkReference)
-                        .Label(frameworkReference.Framework.ToMoniker());
+                        .Mark(frameworkReference.Framework.ToMoniker());
                 }
 
                 foreach (var packageReference in package.PackageReferences)
@@ -81,14 +81,14 @@ namespace Repka.Graphs
                     {
                         GraphKey packageReferenceKey = new(packageReference.Descriptor.ToString());
                         yield return new GraphLinkToken(packageKey, packageReferenceKey, PackageLabels.PackageReference)
-                            .Label(packageReference.Framework.ToMoniker());
+                            .Mark(packageReference.Framework.ToMoniker());
 
                         NuGetDescriptor packageDependency = NuGetManager.DiscoverPackage(packageReference.Descriptor);
                         packageDependencyKey = new(packageDependency.ToString());
                     }
 
                     yield return new GraphLinkToken(packageKey, packageDependencyKey ?? GraphKey.Null, PackageLabels.PackageDependency)
-                        .Label(packageReference.Framework.ToMoniker());
+                        .Mark(packageReference.Framework.ToMoniker());
                 }
             }
         }

@@ -37,9 +37,8 @@ namespace Repka.Graphs
                 .Select(link => link.TargetKey.ToString())
                 .FirstOrDefault();
 
-            public string? TargetFramework => Outputs(ProjectLabels.TargetFramework)
-                .Select(link => link.TargetKey.ToString())
-                .FirstOrDefault();
+            public IEnumerable<string> TargetFrameworks => Tags(ProjectLabels.TargetFramework)
+                .Select(tag => tag.Value);
 
 
             public NuGetIdentifier? PackageId => Outputs(ProjectLabels.PackageDefinition)

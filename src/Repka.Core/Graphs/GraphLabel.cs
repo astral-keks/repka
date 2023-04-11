@@ -29,10 +29,6 @@ namespace Repka.Graphs
 
     public static class GraphLabelExtensions
     {
-        public static IOptional<GraphLabel> Find(this IEnumerable<GraphLabel> source, string name) =>
-            source.FirstOrDefault(label => label.Name == name)
-            .ToOptional();
-
         public static bool ContainsAll(this IEnumerable<GraphLabel> source, params GraphLabel[] labels) =>
             source.ContainsAll(labels.AsEnumerable());
         public static bool ContainsAll(this IEnumerable<GraphLabel> source, IEnumerable<GraphLabel> labels)

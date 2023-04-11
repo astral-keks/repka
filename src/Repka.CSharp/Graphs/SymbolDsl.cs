@@ -19,17 +19,17 @@ namespace Repka.Graphs
 
             public GraphKey Name => Key;
 
-            public int Size => Labels.Find(SymbolLabels.SymbolSize)
+            public int Size => Tag(SymbolLabels.SymbolSize)
                 .Map(label => int.TryParse(label.Value, out int size) ? size : 0)
                 .OrElseDefault();
 
-            public bool IsType => Labels.Contains(SymbolLabels.IsType);
+            public bool IsType => Labeled(SymbolLabels.IsType);
 
-            public bool IsField => Labels.Contains(SymbolLabels.IsField);
+            public bool IsField => Labeled(SymbolLabels.IsField);
 
-            public bool IsProperty => Labels.Contains(SymbolLabels.IsProperty);
+            public bool IsProperty => Labeled(SymbolLabels.IsProperty);
 
-            public bool IsMethod => Labels.Contains(SymbolLabels.IsMethod);
+            public bool IsMethod => Labeled(SymbolLabels.IsMethod);
 
             public DocumentNode Definition => Definitions.Single();
 

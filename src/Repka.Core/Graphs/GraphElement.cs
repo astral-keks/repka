@@ -1,4 +1,6 @@
-﻿namespace Repka.Graphs
+﻿using Repka.Collections;
+
+namespace Repka.Graphs
 {
     public abstract class GraphElement
     {
@@ -15,7 +17,16 @@
 
         public Graph Graph { get; }
 
-        public IEnumerable<GraphLabel> Labels => Token.Labels;
+        public IReadOnlySet<GraphLabel> Labels => Token.Labels;
+
+        public bool Labeled(GraphLabel label) => Labels.Contains(label);
+
+        public IEnumerable<GraphLabel> Tags(string name) => Labels
+            .Where(label => label.Name == name);
+
+        public IOptional<GraphLabel> Tag(string name) => Labels
+            .FirstOrDefault(label => label.Name == name)
+            .ToOptional();
 
         public GraphAttribute Attribute(string name) => State.Attribute(name);
 

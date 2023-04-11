@@ -48,11 +48,13 @@ namespace Repka.Graphs
             GraphKey projectKey = new(projectFile.FullName);
             GraphNodeToken projectToken = new(projectKey, ProjectLabels.Project);
             if (projectElement.IsExecutableOutputType())
-                projectToken.Label(ProjectLabels.ExecutableProject);
+                projectToken.Mark(ProjectLabels.ExecutableProject);
             if (projectElement.IsLibraryOutputType())
-                projectToken.Label(ProjectLabels.LibraryProject);
+                projectToken.Mark(ProjectLabels.LibraryProject);
             if (projectElement.IsPackageable())
-                projectToken.Label(ProjectLabels.PackageProject);
+                projectToken.Mark(ProjectLabels.PackageProject);
+            foreach (var targetFramework in projectElement.GetTargetFrameworks())
+                projectToken.Mark(ProjectLabels.TargetFramework, targetFramework);
             yield return projectToken;
 
             if (!string.IsNullOrWhiteSpace(projectElement.Sdk))
@@ -68,12 +70,6 @@ namespace Repka.Graphs
                 yield return new GraphLinkToken(projectToken.Key, packageKey, ProjectLabels.PackageDefinition);
             }
 
-            foreach (var framework in projectElement.GetTargetFrameworks())
-            {
-                GraphKey frameworkKey = new(framework);
-                yield return new GraphLinkToken(projectKey, frameworkKey, ProjectLabels.TargetFramework);
-            }
-        
             foreach (var packageReference in projectElement.GetPackageReferences())
             {
                 NuGetDescriptor packageReferenceDescriptor = new(packageReference.Id, packageReference.Version);
