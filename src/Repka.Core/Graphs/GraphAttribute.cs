@@ -29,7 +29,7 @@
         public override bool Equals(object? obj)
         {
             return obj is GraphAttribute attribute &&
-                   Equals(Name, attribute.Name);
+                Equals(Name, attribute.Name);
         }
 
         public override int GetHashCode()

@@ -115,8 +115,8 @@ namespace Repka.Packaging
         public override bool Equals(object? obj)
         {
             return obj is NuGetPackage package &&
-                   Id == package.Id &&
-                   Version == package.Version;
+                Equals(Id, package.Id) &&
+                Equals(Version, package.Version);
         }
 
         public override int GetHashCode()

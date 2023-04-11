@@ -20,12 +20,14 @@
 
         public bool Equals(CacheProperty? other)
         {
-            return Name == other?.Name && Value == other?.Value;
+            return Equals(other as object);
         }
 
         public override bool Equals(object? obj)
         {
-            return Equals(obj as CacheProperty);
+            return obj is CacheProperty property &&
+                Equals(Name, property.Name) &&
+                Equals(Value, property.Value);
         }
 
         public override int GetHashCode()

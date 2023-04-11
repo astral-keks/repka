@@ -76,7 +76,8 @@ namespace Repka.Graphs
 
         public override bool Equals(object? obj)
         {
-            return obj is GraphKey key && Normalized == key.Normalized;
+            return obj is GraphKey key && 
+                Equals(Normalized, key.Normalized);
         }
 
         public override int GetHashCode()

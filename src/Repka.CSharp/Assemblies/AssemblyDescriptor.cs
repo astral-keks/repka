@@ -42,7 +42,7 @@ namespace Repka.Assemblies
         public override bool Equals(object? obj)
         {
             return obj is AssemblyDescriptor reference &&
-                   Normalized == reference.Normalized;
+                Equals(Normalized, reference.Normalized);
         }
 
         public override int GetHashCode()

@@ -41,7 +41,7 @@ namespace Repka.Packaging
 
         public NuGetIdentifier Id { get; }
 
-        public NuGetVersion? Version { get; set; }
+        public NuGetVersion? Version { get; }
 
         public static bool operator ==(NuGetDescriptor? left, NuGetDescriptor? right) => Equals(left, right);
 
@@ -50,8 +50,8 @@ namespace Repka.Packaging
         public override bool Equals(object? obj)
         {
             return obj is NuGetDescriptor descriptor &&
-                   Id == descriptor.Id &&
-                   Version == descriptor.Version;
+                Equals(Id, descriptor.Id) &&
+                Equals(Version, descriptor.Version);
         }
 
         public override int GetHashCode()

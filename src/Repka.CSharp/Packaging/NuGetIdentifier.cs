@@ -25,7 +25,7 @@ namespace Repka.Packaging
         public override bool Equals(object? obj)
         {
             return obj is NuGetIdentifier identifier &&
-                   Normalized == identifier.Normalized;
+                Equals(Normalized, identifier.Normalized);
         }
 
         public override int GetHashCode()

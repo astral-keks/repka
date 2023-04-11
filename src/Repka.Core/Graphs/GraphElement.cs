@@ -26,7 +26,7 @@
         public override bool Equals(object? obj)
         {
             return obj is GraphElement element &&
-                EqualityComparer<GraphToken>.Default.Equals(Token, element.Token);
+                Equals(Token, element.Token);
         }
 
         public override int GetHashCode()
