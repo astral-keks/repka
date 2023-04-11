@@ -76,7 +76,8 @@ namespace Repka.Graphs
         
             foreach (var packageReference in projectElement.GetPackageReferences())
             {
-                PackageKey packageReferenceKey = new(packageReference.Id, packageReference.Version);
+                NuGetDescriptor packageReferenceDescriptor = new(packageReference.Id, packageReference.Version);
+                GraphKey packageReferenceKey = new(packageReferenceDescriptor.ToString());
                 yield return new GraphLinkToken(projectKey, packageReferenceKey, ProjectLabels.PackageReference);
             }
 

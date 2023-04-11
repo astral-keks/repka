@@ -37,7 +37,8 @@ namespace Repka.Graphs
         {
             if (projectNode.PackageId is not null)
             {
-                PackageKey packageKey = new(projectNode.PackageId.ToString(), null);
+                NuGetDescriptor packageDescriptor = new(projectNode.PackageId, null);
+                GraphKey packageKey = new(packageDescriptor.ToString());
                 yield return new GraphNodeToken(packageKey, PackageLabels.Package);
             }
 
@@ -47,7 +48,7 @@ namespace Repka.Graphs
                 .ToList();
             foreach (var packageDependency in packageDependencies)
             {
-                PackageKey packageDependencyKey = new(packageDependency);
+                GraphKey packageDependencyKey = new(packageDependency.ToString());
                 yield return new GraphLinkToken(projectNode.Key, packageDependencyKey, PackageLabels.PackageDependency);
 
                 foreach (var token in GetPackageTokens(packageDependency, packageIdsFromProjects, packageInspection))
@@ -60,7 +61,7 @@ namespace Repka.Graphs
         {
             foreach (var package in GetPackageDependencies(packageDescriptor, packageIdsFromProjects, packageInspection))
             {
-                PackageKey packageKey = new(package);
+                GraphKey packageKey = new(package.Descriptor.ToString());
                 yield return new GraphNodeToken(packageKey, PackageLabels.Package);
 
                 foreach (var assembly in package.Assemblies)
@@ -75,15 +76,15 @@ namespace Repka.Graphs
 
                 foreach (var packageReference in package.PackageReferences)
                 {
-                    PackageKey? packageDependencyKey = default;
+                    GraphKey? packageDependencyKey = default;
                     if (packageReference.Descriptor is not null && !packageIdsFromProjects.Contains(packageReference.Descriptor.Id))
                     {
-                        PackageKey packageReferenceKey = new(packageReference.Descriptor);
+                        GraphKey packageReferenceKey = new(packageReference.Descriptor.ToString());
                         yield return new GraphLinkToken(packageKey, packageReferenceKey, PackageLabels.PackageReference)
                             .Label(packageReference.Framework.ToMoniker());
 
                         NuGetDescriptor packageDependency = NuGetManager.DiscoverPackage(packageReference.Descriptor);
-                        packageDependencyKey = new(packageDependency);
+                        packageDependencyKey = new(packageDependency.ToString());
                     }
 
                     yield return new GraphLinkToken(packageKey, packageDependencyKey ?? GraphKey.Null, PackageLabels.PackageDependency)

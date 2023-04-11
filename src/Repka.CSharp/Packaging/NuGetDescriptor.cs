@@ -6,30 +6,35 @@ namespace Repka.Packaging
 {
     public class NuGetDescriptor : Normalizable, IComparable<NuGetDescriptor>
     {
+        public static NuGetDescriptor Parse(string value)
+        {
+            NuGetDescriptor descriptor;
+
+            string[] parts = value.Split(':');
+            if (parts.Length == 2)
+                descriptor = new(parts[0], parts[1]);
+            else
+                descriptor = new(value, default(string));
+
+            return descriptor;
+        }
+
         public static NuGetDescriptor Of(PackageDependency package)
         {
             VersionRange versions = package.VersionRange;
             NuGetVersion? maxVersion = versions.IsMaxInclusive ? versions.MaxVersion : default;
             NuGetVersion? minVersion = versions.IsMinInclusive ? versions.MinVersion : default;
-            return Of(package.Id, maxVersion ?? minVersion);
+            return new(package.Id, maxVersion ?? minVersion);
         }
 
-        public static NuGetDescriptor Of((string Id, string? Version) package)
+        public NuGetDescriptor(string id, string? version)
+            : this(id, NuGetVersion.TryParse(version, out NuGetVersion? nugetVersion) ? nugetVersion : default)
         {
-            return Of(package.Id, package.Version);
         }
 
-        public static NuGetDescriptor Of(string id, string? version)
+        public NuGetDescriptor(string id, NuGetVersion? version)
+            : this(new NuGetIdentifier(id), version)
         {
-            NuGetIdentifier nugetIdentifier = new(id);
-            NuGetVersion.TryParse(version, out NuGetVersion? nugetVersion);
-            return new(nugetIdentifier, nugetVersion);
-        }
-
-        public static NuGetDescriptor Of(string id, NuGetVersion? version)
-        {
-            NuGetIdentifier nugetIdentifier = new(id);
-            return new(nugetIdentifier, version);
         }
 
         public NuGetDescriptor(NuGetIdentifier id, NuGetVersion? version) 

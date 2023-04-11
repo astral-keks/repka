@@ -22,18 +22,16 @@ namespace Repka.Graphs
 
         public class PackageNode : GraphNode
         {
-            private readonly PackageKey _key;
-
             internal PackageNode(GraphNode node) : base(node)
             {
-                _key = PackageKey.Parse(Key);
+                Descriptor = NuGetDescriptor.Parse(Key);
             }
 
-            public NuGetIdentifier Id => new(_key.Id);
+            public NuGetIdentifier Id => Descriptor.Id;
 
-            public NuGetVersion? Version => NuGetVersion.TryParse(_key.Version, out NuGetVersion? nugetVersion) 
-                ? nugetVersion 
-                : default;
+            public NuGetVersion? Version => Descriptor.Version;
+
+            public NuGetDescriptor Descriptor { get; }
 
             public ProjectNode? Project => Inputs(ProjectLabels.PackageDefinition)
                 .Select(link => link.Source().AsProject()).OfType<ProjectNode>()
@@ -57,43 +55,6 @@ namespace Repka.Graphs
 
             public IEnumerable<ProjectNode> DependingProjects => Inputs(PackageLabels.PackageDependency)
                 .Select(link => link.Source().AsProject()).OfType<ProjectNode>();
-        }
-
-        public class PackageKey : GraphKey
-        {
-            public static PackageKey Parse(string packageKey)
-            {
-                PackageKey key;
-
-                string[] parts = packageKey.Split(':');
-                if (parts.Length == 2)
-                    key = new(parts[0], parts[1]);
-                else
-                    key = new(packageKey, null);
-
-                return key;
-            }
-
-            public PackageKey(NuGetPackage package)
-                : this(package.Id.ToString(), package.Version.ToString())
-            {
-            }
-            
-            public PackageKey(NuGetDescriptor packageDescriptor)
-                : this(packageDescriptor.Id.ToString(), packageDescriptor.Version?.ToString())
-            {
-            }
-
-            public PackageKey(string packageId, string? packageVersion)
-                : base($"{packageId}:{packageVersion}")
-            {
-                Id = packageId;
-                Version = packageVersion;
-            }
-
-            public string Id { get; }
-
-            public string? Version { get; }
         }
 
         public class PackageGrouping

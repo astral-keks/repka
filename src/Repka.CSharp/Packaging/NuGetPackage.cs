@@ -8,8 +8,6 @@ namespace Repka.Packaging
 {
     public class NuGetPackage
     {
-        private readonly string _location;
-        private readonly bool _developmentDependency;
         private readonly IReadOnlyList<string> _files;
         private readonly IReadOnlyList<PackageDependencyGroup> _packageDependencies;
         private readonly IReadOnlyList<FrameworkSpecificGroup> _frameworkDependencies;
@@ -18,8 +16,9 @@ namespace Repka.Packaging
         {
             Id = new(packageInfo.Id);
             Version = packageInfo.Version;
-            _location = packageInfo.ExpandedPath;
-            _developmentDependency = packageInfo.Nuspec.GetDevelopmentDependency();
+            Descriptor = new(Id, Version);
+            Location = packageInfo.ExpandedPath;
+            IsDevelopmentDependency = packageInfo.Nuspec.GetDevelopmentDependency();
             _files = packageInfo.Files;
             _packageDependencies = packageInfo.Nuspec.GetDependencyGroups().ToList();
             _frameworkDependencies = packageInfo.Nuspec.GetFrameworkAssemblyGroups().ToList();
@@ -33,7 +32,11 @@ namespace Repka.Packaging
 
         public NuGetVersion Version { get; }
 
-        public bool IsDevelopmentDependency => _developmentDependency;
+        public NuGetDescriptor Descriptor { get; }
+
+        public string Location { get; }
+
+        public bool IsDevelopmentDependency { get; }
 
         public IReadOnlyList<NuGetPackageReference> PackageReferences => _packageReferences.Value;
         private readonly Lazy<List<NuGetPackageReference>> _packageReferences;
@@ -41,8 +44,8 @@ namespace Repka.Packaging
         {
             return _packageDependencies
                 .SelectMany(group => group.Packages.Any()
-                    ? group.Packages.Select(package => new NuGetPackageReference(NuGetDescriptor.Of(package), group.TargetFramework)).ToList()
-                    : new() { new NuGetPackageReference(default, group.TargetFramework) })
+                    ? group.Packages.Select(package => new NuGetPackageReference(package, group.TargetFramework)).ToList()
+                    : new() { new NuGetPackageReference(default(NuGetDescriptor), group.TargetFramework) })
                 .ToList();
         }
 
@@ -108,7 +111,7 @@ namespace Repka.Packaging
         private string? ResolveFile(string? path)
         {
             if (path is not null)
-                path = Path.Combine(_location, path).Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
+                path = Path.Combine(Location, path).Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
             return path;
         }
 
