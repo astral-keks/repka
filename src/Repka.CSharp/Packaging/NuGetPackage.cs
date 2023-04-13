@@ -24,7 +24,7 @@ namespace Repka.Packaging
             _frameworkDependencies = packageInfo.Nuspec.GetFrameworkAssemblyGroups().ToList();
             _assemblies = new(GetAssemblies, true);
             _packageReferences = new(GetPackageReferences, true);
-            _frameworkReferences = new(GetFrameworkReferences, true);
+            _assemblyReferences = new(GetAssemblyReferences, true);
             _dllsWithTfm = new(GetDllsWithTfm, true);
         }
 
@@ -49,14 +49,14 @@ namespace Repka.Packaging
                 .ToList();
         }
 
-        public IReadOnlyList<NuGetFrameworkReference> FrameworkReferences => _frameworkReferences.Value;
-        private readonly Lazy<List<NuGetFrameworkReference>> _frameworkReferences;
-        public List<NuGetFrameworkReference> GetFrameworkReferences()
+        public IReadOnlyList<NuGetAssemblyReference> AssemblyReferences => _assemblyReferences.Value;
+        private readonly Lazy<List<NuGetAssemblyReference>> _assemblyReferences;
+        public List<NuGetAssemblyReference> GetAssemblyReferences()
         {
             return _frameworkDependencies
                 .SelectMany(group => group.Items.Any()
-                    ? group.Items.Select(item => new NuGetFrameworkReference(item, group.TargetFramework)).ToList()
-                    : new() { new NuGetFrameworkReference(default, group.TargetFramework) })
+                    ? group.Items.Select(item => new NuGetAssemblyReference(item, group.TargetFramework)).ToList()
+                    : new() { new NuGetAssemblyReference(default, group.TargetFramework) })
                 .ToList();
         }
 

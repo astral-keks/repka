@@ -1,4 +1,5 @@
-﻿using static Repka.Graphs.ProjectDsl;
+﻿using Repka.Paths;
+using static Repka.Graphs.ProjectDsl;
 
 namespace Repka.Graphs
 {
@@ -16,9 +17,12 @@ namespace Repka.Graphs
         {
             internal SolutionNode(GraphNode node) : base(node) { }
 
-            public string Location => Key;
+            public AbsolutePath Location => new(Key);
 
             public string? Name => Path.GetFileNameWithoutExtension(Location);
+
+            public IEnumerable<AbsolutePath> ProjectReferences => Outputs(SolutionLabels.SolutionProject)
+                .Select(link => link.TargetKey.AsAbsolutePath());
 
             public IEnumerable<ProjectNode> Projects => Outputs(SolutionLabels.SolutionProject)
                 .Select(link => link.Target().AsProject()).OfType<ProjectNode>();

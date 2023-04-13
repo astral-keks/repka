@@ -49,7 +49,7 @@ namespace Repka.Graphs
             foreach (var packageDependency in packageDependencies)
             {
                 GraphKey packageDependencyKey = new(packageDependency.ToString());
-                yield return new GraphLinkToken(projectNode.Key, packageDependencyKey, PackageLabels.PackageDependency);
+                yield return new GraphLinkToken(projectNode.Key, packageDependencyKey, PackageLabels.DependencyPackage);
 
                 foreach (var token in GetPackageTokens(packageDependency, packageIdsFromProjects, packageInspection))
                     yield return token;
@@ -65,13 +65,13 @@ namespace Repka.Graphs
                 yield return new GraphNodeToken(packageKey, PackageLabels.Package);
 
                 foreach (var assembly in package.Assemblies)
-                    yield return new GraphLinkToken(packageKey, assembly.Locaton ?? GraphKey.Null, PackageLabels.PackageAssembly)
+                    yield return new GraphLinkToken(packageKey, assembly.Locaton ?? GraphKey.Null, PackageLabels.AssemblyAsset)
                         .Mark(assembly.Framework.ToMoniker());
 
-                foreach (var frameworkReference in package.FrameworkReferences)
+                foreach (var assemblyReference in package.AssemblyReferences)
                 {
-                    yield return new GraphLinkToken(packageKey, frameworkReference.AssemblyName ?? GraphKey.Null, PackageLabels.PackageFrameworkReference)
-                        .Mark(frameworkReference.Framework.ToMoniker());
+                    yield return new GraphLinkToken(packageKey, assemblyReference.AssemblyName ?? GraphKey.Null, PackageLabels.AssemblyReference)
+                        .Mark(assemblyReference.Framework.ToMoniker());
                 }
 
                 foreach (var packageReference in package.PackageReferences)
@@ -87,7 +87,7 @@ namespace Repka.Graphs
                         packageDependencyKey = new(packageDependency.ToString());
                     }
 
-                    yield return new GraphLinkToken(packageKey, packageDependencyKey ?? GraphKey.Null, PackageLabels.PackageDependency)
+                    yield return new GraphLinkToken(packageKey, packageDependencyKey ?? GraphKey.Null, PackageLabels.DependencyPackage)
                         .Mark(packageReference.Framework.ToMoniker());
                 }
             }

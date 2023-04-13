@@ -1,12 +1,12 @@
 ﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Text;
 using Repka.Collections;
 using Repka.Diagnostics;
 using Repka.Workspaces;
 using static Repka.Graphs.WorkspaceDsl;
 using static Repka.Graphs.ProjectDsl;
-using Repka.Assemblies;
-using Microsoft.CodeAnalysis.Text;
 using static Repka.Graphs.DocumentDsl;
+using AssemblyMetadata = Repka.Assemblies.AssemblyMetadata;
 
 namespace Repka.Graphs
 {
@@ -22,8 +22,8 @@ namespace Repka.Graphs
             List<ProjectNode> projectNodes = graph.Projects().ToList();
             ProgressPercentage projectProgress = Progress.Percent("Creating workspace", projectNodes.Count);
             Inspection<ProjectNode, ProjectReference> projectReferenceInspection = new();
-            Inspection<ProjectNode, AssemblyDescriptor> assemblyDescriptorInspection = new();
-            Inspection<AssemblyDescriptor, MetadataReference> metadataReferenceInspection = new();
+            Inspection<ProjectNode, AssemblyMetadata> assemblyDescriptorInspection = new();
+            Inspection<AssemblyMetadata, MetadataReference> metadataReferenceInspection = new();
             IEnumerable<ProjectInfo> projectsInfo = projectNodes//.AsParallel(8)                
                 .Peek(projectProgress.Increment)
                 .Select(projectNode => CreateProject(projectNode,
@@ -57,11 +57,11 @@ namespace Repka.Graphs
 
         private ProjectInfo CreateProject(ProjectNode projectNode,
             Inspection<ProjectNode, ProjectReference> projectReferenceInspection,
-            Inspection<ProjectNode, AssemblyDescriptor> assemblyDescriptorInspection,
-            Inspection<AssemblyDescriptor, MetadataReference> metadataReferenceInspection)
+            Inspection<ProjectNode, AssemblyMetadata> assemblyDescriptorInspection,
+            Inspection<AssemblyMetadata, MetadataReference> metadataReferenceInspection)
         {
             ICollection<ProjectReference> projectReferences = GetProjectReferences(projectNode, projectReferenceInspection);
-            ICollection<AssemblyDescriptor> assemblyDependencies = GetAssemblyDependencies(projectNode, assemblyDescriptorInspection);
+            ICollection<AssemblyMetadata> assemblyDependencies = GetAssemblyDependencies(projectNode, assemblyDescriptorInspection);
             ICollection<MetadataReference> metadataReferences = assemblyDependencies
                 .SelectMany(assembly => GetMetadataReferences(assembly, metadataReferenceInspection))
                 .ToList();
@@ -88,7 +88,7 @@ namespace Repka.Graphs
             return projectReferenceInspection.InspectOrGet(projectNode, () => visitProject().ToHashSet());
             IEnumerable<ProjectReference> visitProject()
             {
-                foreach (var projectDependency in projectNode.ProjectDependencies)
+                foreach (var projectDependency in projectNode.DependencyProjects)
                 {
                     yield return new ProjectReference(projectDependency.Id);
                     foreach (var reference in GetProjectReferences(projectDependency, projectReferenceInspection))
@@ -97,25 +97,25 @@ namespace Repka.Graphs
             }
         }
 
-        private ICollection<AssemblyDescriptor> GetAssemblyDependencies(ProjectNode projectNode,
-            Inspection<ProjectNode, AssemblyDescriptor> assemblyDescriptorInspection)
+        private ICollection<AssemblyMetadata> GetAssemblyDependencies(ProjectNode projectNode,
+            Inspection<ProjectNode, AssemblyMetadata> assemblyDescriptorInspection)
         {
             return assemblyDescriptorInspection.InspectOrGet(projectNode, () => visitProject().ToHashSet());
-            IEnumerable<AssemblyDescriptor> visitProject()
+            IEnumerable<AssemblyMetadata> visitProject()
             {
-                IEnumerable<AssemblyDescriptor> assemblies = projectNode.AssemblyDependencies()
-                    .Select(assemblyNode => assemblyNode.Descriptor)
+                IEnumerable<AssemblyMetadata> assemblies = projectNode.RestoredAssemblies
+                    .Select(assemblyNode => assemblyNode.Metadata)
                     .Where(assembly => assembly.Exists)
                     .GroupBy(assembly => assembly.Name)
                     .Select(assemblyGroup => assemblyGroup.MaxBy(assembly => assembly.Version))
-                    .OfType<AssemblyDescriptor>();
+                    .OfType<AssemblyMetadata>();
                 foreach (var assembly in assemblies)
                     yield return assembly;
             }
         }
 
-        private ICollection<MetadataReference> GetMetadataReferences(AssemblyDescriptor assembly,
-            Inspection<AssemblyDescriptor, MetadataReference> metadataReferenceInspection)
+        private ICollection<MetadataReference> GetMetadataReferences(AssemblyMetadata assembly,
+            Inspection<AssemblyMetadata, MetadataReference> metadataReferenceInspection)
         {
             return metadataReferenceInspection.InspectOrGet(assembly, () => visitAssembly().ToList());
             IEnumerable<MetadataReference> visitAssembly()

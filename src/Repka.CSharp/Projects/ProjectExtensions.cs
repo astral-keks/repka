@@ -120,17 +120,17 @@ namespace Repka.Projects
                     .Select(hintPath => new LibraryReference(hintPath, Path.GetFullPath(Path.Combine(directory, hintPath)))));
         }
 
-        public static IEnumerable<FrameworkReference> GetFrameworkReferences(this ProjectRootElement project)
+        public static IEnumerable<AssemblyReference> GetAssemblyReferences(this ProjectRootElement project)
         {
-            List<FrameworkReference> frameworkAssemblies = new();
+            List<AssemblyReference> frameworkAssemblies = new();
             ISet<string> targetFrameworks = project.GetTargetFrameworks();
             if (targetFrameworks.Any(framework => Regex.IsMatch(framework, "^net[0-9]+")))
-                frameworkAssemblies.Add(FrameworkReference.Mscorlib);
+                frameworkAssemblies.Add(AssemblyReference.Mscorlib);
             if (targetFrameworks.Any(framework => framework.Contains("netstandard")))
-                frameworkAssemblies.Add(FrameworkReference.Netstandard);
+                frameworkAssemblies.Add(AssemblyReference.Netstandard);
             return project.Items
                 .Where(item => item.ElementName == "Reference" && !item.Metadata.Any(metadata => metadata.Name == "HintPath"))
-                .Select(item => new FrameworkReference(new string(item.Include.TakeWhile(ch => ch != ',').ToArray())))
+                .Select(item => new AssemblyReference(new string(item.Include.TakeWhile(ch => ch != ',').ToArray())))
                 .Concat(frameworkAssemblies);
         }
 

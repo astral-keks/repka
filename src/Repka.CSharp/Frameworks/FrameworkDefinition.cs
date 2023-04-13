@@ -6,16 +6,16 @@ namespace Repka.Frameworks
     {
         private readonly string? _moniker;
         private readonly AssemblyResolver _resolver;
-        private readonly List<AssemblyDescriptor> _assemblies;
+        private readonly List<AssemblyMetadata> _assemblies;
 
-        public FrameworkDefinition(string? moniker, AssemblyResolver resolver, List<string>? assemblies = null)
+        public FrameworkDefinition(string? moniker, AssemblyResolver resolver, List<AssemblyName>? assemblies = null)
             : this(moniker, resolver)
         {
             if (assemblies is not null)
-                _assemblies.AddRange(assemblies.Select(resolver.FindAssembly).OfType<AssemblyDescriptor>());
+                _assemblies.AddRange(assemblies.Select(resolver.FindAssembly).OfType<AssemblyMetadata>());
         }
 
-        private FrameworkDefinition(string? moniker, List<AssemblyDescriptor> assemblies, AssemblyResolver resolver)
+        private FrameworkDefinition(string? moniker, List<AssemblyMetadata> assemblies, AssemblyResolver resolver)
             : this(moniker, resolver)
         {
             _assemblies.AddRange(assemblies);
@@ -32,7 +32,7 @@ namespace Repka.Frameworks
 
         public AssemblyResolver Resolver => _resolver;
 
-        public IReadOnlyCollection<AssemblyDescriptor> Assemblies => _assemblies;
+        public IReadOnlyCollection<AssemblyMetadata> Assemblies => _assemblies;
 
         public static implicit operator string?(FrameworkDefinition frameworkDefinition) => frameworkDefinition.Moniker;
 

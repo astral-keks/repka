@@ -2,6 +2,7 @@
 using Repka.Collections;
 using Repka.Diagnostics;
 using Repka.Frameworks;
+using Repka.Paths;
 using static Repka.Graphs.AssemblyDsl;
 using static Repka.Graphs.PackageDsl;
 using static Repka.Graphs.ProjectDsl;
@@ -16,7 +17,7 @@ namespace Repka.Graphs
         {
             List<PackageNode> packageNodes = graph.Packages().ToList();
             ProgressPercentage packageProgress = Progress.Percent("Resolving package assemblies", packageNodes.Count);
-            Inspection<PackageNode, AssemblyDescriptor> packageInspection = new();
+            Inspection<PackageNode, AbsolutePath> packageInspection = new();
             IEnumerable<GraphToken> packageTokens = packageNodes//.AsParallel(8)
                 .Peek(packageProgress.Increment)
                 .SelectMany(packageNode => GetAssemblyTokens(GetPackageAssemblies(packageNode, packageInspection), packageNode))
@@ -27,7 +28,7 @@ namespace Repka.Graphs
 
             List<ProjectNode> projectNodes = graph.Projects().ToList();
             ProgressPercentage projectProgress = Progress.Percent("Resolving project assemblies", projectNodes.Count);
-            Inspection<ProjectNode, AssemblyDescriptor> projectInspection = new();
+            Inspection<ProjectNode, AbsolutePath> projectInspection = new();
             IEnumerable<GraphToken> projectTokens = projectNodes//.AsParallel(8)
                 .Peek(projectProgress.Increment)
                 .SelectMany(projectNode => GetAssemblyTokens(GetProjectAssemblies(projectNode, projectInspection), projectNode))
@@ -37,69 +38,69 @@ namespace Repka.Graphs
             projectProgress.Complete();
         }
 
-        private IEnumerable<GraphToken> GetAssemblyTokens(IEnumerable<AssemblyDescriptor> assemblies, GraphNode graphNode)
+        private IEnumerable<GraphToken> GetAssemblyTokens(IEnumerable<AbsolutePath> assemblyPaths, GraphNode graphNode)
         {
-            foreach (var assembly in assemblies)
+            foreach (var assemblyPath in assemblyPaths)
             {
-                GraphKey assemblyKey = new(assembly.Location);
+                GraphKey assemblyKey = new(assemblyPath);
                 yield return new GraphNodeToken(assemblyKey, AssemblyLabels.Assembly);
-                yield return new GraphLinkToken(graphNode.Key, assemblyKey, AssemblyLabels.AssemblyDependency);
+                yield return new GraphLinkToken(graphNode.Key, assemblyKey, AssemblyLabels.Restored);
             }
         }
 
-        private IEnumerable<AssemblyDescriptor> GetPackageAssemblies(PackageNode packageNode, 
-            Inspection<PackageNode, AssemblyDescriptor> packageInspection)
+        private IEnumerable<AbsolutePath> GetPackageAssemblies(PackageNode packageNode, 
+            Inspection<PackageNode, AbsolutePath> packageInspection)
         {
             return packageInspection.InspectOrGet(packageNode, () => visitPackage().ToHashSet());
-            IEnumerable<AssemblyDescriptor> visitPackage()
+            IEnumerable<AbsolutePath> visitPackage()
             {
-                foreach (var assembly in packageNode.Assemblies(TargetFramework))
-                    yield return assembly;
+                foreach (var assemblyPath in packageNode.AssemblyAssets(TargetFramework))
+                    yield return assemblyPath;
 
-                foreach (var frameworkReference in packageNode.FrameworkReferences(TargetFramework))
+                foreach (var assemblyName in packageNode.AssemblyReferences(TargetFramework))
                 {
-                    AssemblyDescriptor? frameworkAssembly = TargetFramework.Resolver.FindAssembly(frameworkReference.AssemblyName);
-                    if (frameworkAssembly is not null)
-                        yield return frameworkAssembly;
+                    AssemblyMetadata? assembly = TargetFramework.Resolver.FindAssembly(assemblyName);
+                    if (assembly is not null)
+                        yield return new AbsolutePath(assembly.Location);
                 }
 
-                foreach (var packageDependency in packageNode.PackageDependencies(TargetFramework))
+                foreach (var dependencyPackage in packageNode.DependencyPackages(TargetFramework))
                 {
-                    foreach (var assembly in GetPackageAssemblies(packageDependency, packageInspection))
-                        yield return assembly;
+                    foreach (var assemblyPath in GetPackageAssemblies(dependencyPackage, packageInspection))
+                        yield return assemblyPath;
                 }
             }
         }
 
-        private IEnumerable<AssemblyDescriptor> GetProjectAssemblies(ProjectNode projectNode,
-            Inspection<ProjectNode, AssemblyDescriptor> projectInspection)
+        private IEnumerable<AbsolutePath> GetProjectAssemblies(ProjectNode projectNode,
+            Inspection<ProjectNode, AbsolutePath> projectInspection)
         {
             return projectInspection.InspectOrGet(projectNode, () => visitProject().ToHashSet());
-            IEnumerable<AssemblyDescriptor> visitProject()
+            IEnumerable<AbsolutePath> visitProject()
             {
                 foreach (var assembly in TargetFramework.Assemblies)
-                    yield return assembly;
+                    yield return new AbsolutePath(assembly.Location);
 
-                foreach (var assembly in projectNode.LibraryReferences)
-                    yield return assembly;
+                foreach (var assemblyPath in projectNode.LibraryReferences)
+                    yield return assemblyPath;
 
-                foreach (var frameworkReference in projectNode.FrameworkReferences)
+                foreach (var assemblyName in projectNode.AssemblyReferences)
                 {
-                    AssemblyDescriptor? frameworkAssembly = TargetFramework.Resolver.FindAssembly(frameworkReference);
-                    if (frameworkAssembly is not null)
-                        yield return frameworkAssembly;
+                    AssemblyMetadata? assembly = TargetFramework.Resolver.FindAssembly(assemblyName);
+                    if (assembly is not null)
+                        yield return new AbsolutePath(assembly.Location);
                 }
 
-                foreach (var packageDependency in projectNode.PackageDependencies)
+                foreach (var dependencyPackage in projectNode.DependencyPackages)
                 {
-                    foreach (var assembly in packageDependency.AssemblyDependencies())
-                        yield return assembly.Descriptor;
+                    foreach (var assemblyNode in dependencyPackage.RestoredAssemblies)
+                        yield return assemblyNode.Location;
                 }
 
-                foreach (var projectDependency in projectNode.ProjectDependencies)
+                foreach (var dependencyProject in projectNode.DependencyProjects)
                 {
-                    foreach (var assembly in GetProjectAssemblies(projectDependency, projectInspection))
-                        yield return assembly;
+                    foreach (var assemblyPath in GetProjectAssemblies(dependencyProject, projectInspection))
+                        yield return assemblyPath;
                 }
             }
         }

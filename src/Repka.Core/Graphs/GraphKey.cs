@@ -1,4 +1,5 @@
-﻿using Repka.Strings;
+﻿using Repka.Paths;
+using Repka.Strings;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -7,26 +8,28 @@ namespace Repka.Graphs
 {
     public class GraphKey : Normalizable, IComparable<GraphKey>
     {
+        private readonly string _value;
+
         public static readonly GraphKey Null = new("null");
 
         public static GraphKey Compose(params GraphKey[] keys)
         {
-            return Compose(keys.Select(key => key.Resource).ToArray());
+            return Compose(keys.Select(key => key._value).ToArray());
         }
 
-        public static GraphKey Compose(params string[] resources)
+        public static GraphKey Compose(params string[] values)
         {
-            return Compose(resources, 0) ?? throw new ArgumentException("Key could not be created");
+            return Compose(values, 0) ?? throw new ArgumentException("Key could not be created");
         }
 
-        private static GraphKey? Compose(string[] resources, int index)
+        private static GraphKey? Compose(string[] values, int index)
         {
             GraphKey? key = null;
 
-            if (index < resources.Length)
+            if (index < values.Length)
             { 
-                string first = resources[index];
-                GraphKey? second = Compose(resources, index + 1);
+                string first = values[index];
+                GraphKey? second = Compose(values, index + 1);
                 key = second is not null
                     ? new GraphKey($"{first}+{second}")
                     : new GraphKey(first);
@@ -35,14 +38,12 @@ namespace Repka.Graphs
             return key;
         }
 
-        public static implicit operator string(GraphKey key) => key.Resource;
-        public static implicit operator GraphKey(string resource) => new(resource);
-        public GraphKey(string resource) : base(resource)
+        public static implicit operator string(GraphKey key) => key._value;
+        public static implicit operator GraphKey(string value) => new(value);
+        public GraphKey(string value) : base(value)
         {
-            Resource = resource;
+            _value = value;
         }
-
-        public string Resource { get; }
 
         public bool ContainsAny(params string[] texts)
         {
@@ -51,12 +52,12 @@ namespace Repka.Graphs
 
         public bool Contains(string text)
         {
-            return Resource.Contains(text, StringComparison.OrdinalIgnoreCase);
+            return _value.Contains(text, StringComparison.OrdinalIgnoreCase);
         }
 
         public bool Matches(string pattern, RegexOptions options = RegexOptions.IgnoreCase)
         {
-            return Regex.IsMatch(Resource, pattern, options);
+            return Regex.IsMatch(_value, pattern, options);
         }
 
         public static bool operator !=(GraphKey? first, GraphKey? second)
@@ -85,7 +86,7 @@ namespace Repka.Graphs
             return HashCode.Combine(Normalized);
         }
 
-        public Guid GetGuid()
+        public Guid AsGuid()
         {
             byte[] data = Encoding.UTF8.GetBytes(Normalized);
 
@@ -95,9 +96,11 @@ namespace Repka.Graphs
             return new Guid(hash);
         }
 
+        public AbsolutePath AsAbsolutePath() => new(_value);
+
         public override string ToString()
         {
-            return Resource;
+            return _value;
         }
     }
 }

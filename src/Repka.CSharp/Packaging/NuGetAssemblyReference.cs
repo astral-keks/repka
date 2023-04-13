@@ -2,9 +2,9 @@
 
 namespace Repka.Packaging
 {
-    public class NuGetFrameworkReference : NuGetAsset
+    public class NuGetAssemblyReference : NuGetAsset
     {
-        public NuGetFrameworkReference(string? assemblyName, NuGetFramework framework) 
+        public NuGetAssemblyReference(string? assemblyName, NuGetFramework framework) 
             : base(framework)
         {
             AssemblyName = assemblyName;

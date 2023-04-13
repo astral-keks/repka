@@ -1,6 +1,4 @@
-﻿using Repka.Collections;
-
-namespace Repka.Graphs
+﻿namespace Repka.Graphs
 {
     public readonly struct GraphLabel
     {

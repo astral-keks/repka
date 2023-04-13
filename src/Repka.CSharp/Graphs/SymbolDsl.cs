@@ -11,15 +11,15 @@ namespace Repka.Graphs
         public static SymbolNode? Symbol(this Graph graph, GraphKey key) => graph.Node(key).AsSymbol();
 
         public static SymbolNode? AsSymbol(this GraphNode? node) =>
-            node?.Labels.Contains(SymbolLabels.IsSymbol) == true ? new(node) : default;
+            node?.Labels.Contains(SymbolLabels.Symbol) == true ? new(node) : default;
 
         public class SymbolNode : GraphNode
         {
             public SymbolNode(GraphNode node) : base(node) { }
 
-            public GraphKey Name => Key;
+            public string Name => Key;
 
-            public int Size => Tag(SymbolLabels.SymbolSize)
+            public int Size => Tag(SymbolLabels.Size)
                 .Map(label => int.TryParse(label.Value, out int size) ? size : 0)
                 .OrElseDefault();
 
@@ -31,28 +31,25 @@ namespace Repka.Graphs
 
             public bool IsMethod => Labeled(SymbolLabels.IsMethod);
 
-            public DocumentNode Definition => Definitions.Single();
-
-            public IEnumerable<DocumentNode> Definitions => Inputs(SymbolLabels.DefinesSymbol)
+            public IEnumerable<DocumentNode> DefiningDocuments => Inputs(SymbolLabels.DefinesSymbol)
                 .Select(link => link.Source().AsDocument()).OfType<DocumentNode>();
 
-            public IEnumerable<DocumentNode> References => Inputs(SymbolLabels.UsesSymbol)
+            public IEnumerable<DocumentNode> ReferencingDocuments => Inputs(SymbolLabels.ReferencesSymbol)
                 .Select(link => link.Source().AsDocument()).OfType<DocumentNode>();
         }
 
         public static class SymbolLabels
         {
-            public const string IsSymbol = nameof(IsSymbol);
-            public const string IsType = nameof(IsType);
-            public const string IsField = nameof(IsField);
-            public const string IsProperty = nameof(IsProperty);
-            public const string IsMethod = nameof(IsMethod);
+            public const string Symbol = nameof(Symbol);
+            public const string IsType = $"{Symbol}.{nameof(IsType)}";
+            public const string IsField = $"{Symbol}.{nameof(IsField)}";
+            public const string IsProperty = $"{Symbol}.{nameof(IsProperty)}";
+            public const string IsMethod = $"{Symbol}.{nameof(IsMethod)}";
 
-            public const string SymbolSize = nameof(SymbolSize);
+            public const string Size = $"{Symbol}.{nameof(Size)}";
 
-            public const string DefinesSymbol = nameof(DefinesSymbol);
-
-            public const string UsesSymbol = nameof(UsesSymbol);
+            public const string DefinesSymbol= $"{Symbol}.{nameof(DefinesSymbol)}";
+            public const string ReferencesSymbol = $"{Symbol}.{nameof(ReferencesSymbol)}";
         }
     }
 }

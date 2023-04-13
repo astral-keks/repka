@@ -1,6 +1,8 @@
 ﻿using Microsoft.CodeAnalysis;
 using Repka.Assemblies;
 using Repka.Packaging;
+using Repka.Paths;
+using static Repka.Graphs.AssemblyDsl;
 using static Repka.Graphs.DocumentDsl;
 using static Repka.Graphs.PackageDsl;
 using static Repka.Graphs.SolutionDsl;
@@ -17,19 +19,18 @@ namespace Repka.Graphs
         public static ProjectNode? AsProject(this GraphNode? node) =>
             node?.Labels.Contains(ProjectLabels.Project) == true ? new(node) : default;
 
-
         public class ProjectNode : GraphNode
         {
             internal ProjectNode(GraphNode node) : base(node) { }
 
-            public ProjectId Id => ProjectId.CreateFromSerialized(Key.GetGuid());
-
             public string Name => Path.GetFileNameWithoutExtension(Key);
 
-            public string Directory => Path.GetDirectoryName(Key) 
+            public ProjectId Id => ProjectId.CreateFromSerialized(Key.AsGuid());
+
+            public AbsolutePath Directory => Path.GetDirectoryName(Key) 
                 ?? throw new DirectoryNotFoundException("Project directory could not be resolved");
 
-            public string Location => Key;
+            public AbsolutePath Location => new(Key);
 
             public bool HasSdk => !string.IsNullOrWhiteSpace(Sdk);
 
@@ -41,46 +42,64 @@ namespace Repka.Graphs
                 .Select(tag => tag.Value);
 
 
-            public NuGetIdentifier? PackageId => Outputs(ProjectLabels.PackageDefinition)
+            public NuGetIdentifier? PackageId => Outputs(ProjectLabels.Package)
                 .Select(link => new NuGetIdentifier(link.TargetKey.ToString()))
                 .FirstOrDefault();
 
-            public PackageNode? Package => Outputs(ProjectLabels.PackageDefinition)
+            public PackageNode? Package => Outputs(ProjectLabels.Package)
                 .Select(link => link.Target().AsPackage()).OfType<PackageNode>()
                 .FirstOrDefault();
 
 
-            public IEnumerable<string> DocumentReferences => Outputs(ProjectLabels.DocumentReference)
-                .Select(link => link.TargetKey.ToString());
+            public IEnumerable<AbsolutePath> DocumentReferences => Outputs(ProjectLabels.DocumentReference)
+                .Select(link => link.TargetKey.AsAbsolutePath());
+
+            public IEnumerable<DocumentNode> ReferencedDocuments => Outputs(ProjectLabels.DocumentReference)
+                .Select(link => link.Target().AsDocument()).OfType<DocumentNode>();
 
             public IEnumerable<DocumentNode> Documents => Outputs(DocumentLabels.Document)
-                .Select(link => link.Target().AsDocument())
-                .OfType<DocumentNode>();
+                .Select(link => link.Target().AsDocument()).OfType<DocumentNode>();
 
 
-            public IEnumerable<string> FrameworkReferences => Outputs(ProjectLabels.FrameworkReference)
-                .Select(link => link.TargetKey.ToString());
+            public IEnumerable<AssemblyName> AssemblyReferences => Outputs(ProjectLabels.AssemblyReference)
+                .Select(link => link.TargetKey.AsAssemblyName());
 
 
-            public IEnumerable<AssemblyDescriptor> LibraryReferences => Outputs(ProjectLabels.LibraryReference)
-                .Select(link => new AssemblyDescriptor(link.TargetKey.ToString()));
+            public IEnumerable<AbsolutePath> LibraryReferences => Outputs(ProjectLabels.LibraryReference)
+                .Select(link => link.TargetKey.AsAbsolutePath());
+
+            public IEnumerable<AssemblyNode> ReferencedLibraries => Outputs(ProjectLabels.LibraryReference)
+                .Select(link => link.Target().AsAssembly()).OfType<AssemblyNode>();
 
 
-            public IEnumerable<string> ProjectReferences => Outputs(ProjectLabels.ProjectReference)
-                .Select(link => link.TargetKey.ToString());
-
-            public IEnumerable<ProjectNode> ProjectDependencies => Outputs(ProjectLabels.ProjectDependency)
+            public IEnumerable<AbsolutePath> ProjectReferences => Outputs(ProjectLabels.ProjectReference)
+                .Select(link => link.TargetKey.AsAbsolutePath());
+            
+            public IEnumerable<ProjectNode> ReferencedProjects => Outputs(ProjectLabels.ProjectReference)
                 .Select(link => link.Target().AsProject()).OfType<ProjectNode>();
 
-            public IEnumerable<ProjectNode> DependentProjects => Inputs(ProjectLabels.ProjectDependency)
+            public IEnumerable<ProjectNode> DependencyProjects => Outputs(ProjectLabels.DependencyProject)
+                .Select(link => link.Target().AsProject()).OfType<ProjectNode>();
+
+            public IEnumerable<ProjectNode> DependentProjects => Inputs(ProjectLabels.DependencyProject)
                 .Select(link => link.Source().AsProject()).OfType<ProjectNode>();
             
 
             public IEnumerable<NuGetDescriptor> PackageReferences => Outputs(ProjectLabels.PackageReference)
                 .Select(link => NuGetDescriptor.Parse(link.TargetKey));
-
-            public IEnumerable<PackageNode> PackageDependencies => Outputs(PackageLabels.PackageDependency)
+            
+            public IEnumerable<PackageNode> ReferencedPackages => Outputs(ProjectLabels.PackageReference)
                 .Select(link => link.Target().AsPackage()).OfType<PackageNode>();
+
+            public IEnumerable<PackageNode> DependencyPackages => Outputs(PackageLabels.DependencyPackage)
+                .Select(link => link.Target().AsPackage()).OfType<PackageNode>();
+
+            public IEnumerable<PackageNode> DependentPackages => Inputs(PackageLabels.DependencyPackage)
+                .Select(link => link.Source().AsPackage()).OfType<PackageNode>();
+
+
+            public IEnumerable<AssemblyNode> RestoredAssemblies => Outputs(AssemblyLabels.Restored)
+                .Select(link => link.Target().AsAssembly()).OfType<AssemblyNode>();
 
 
             public IEnumerable<SolutionNode> Solutions => Inputs(SolutionLabels.SolutionProject)
@@ -90,25 +109,25 @@ namespace Repka.Graphs
         public static class ProjectLabels
         {
             public const string Project = nameof(Project);
-            public const string PackageProject = nameof(PackageProject);
-            public const string ExecutableProject = nameof(ExecutableProject);
-            public const string LibraryProject = nameof(LibraryProject);
+            public const string Packageable = $"{Project}.{nameof(Packageable)}";
+            public const string Executable = $"{Project}.{nameof(Executable)}";
+            public const string Library = $"{Project}.{nameof(Library)}";
 
-            public const string Sdk = nameof(Sdk);
-            public const string TargetFramework = nameof(TargetFramework);
+            public const string Sdk = $"{Project}.{nameof(Sdk)}";
+            public const string TargetFramework = $"{Project}.{nameof(TargetFramework)}";
 
-            public const string PackageDefinition = nameof(PackageDefinition);
+            public const string Package = $"{Project}.{nameof(Package)}";
 
-            public const string FrameworkReference = nameof(FrameworkReference);
+            public const string AssemblyReference = $"{Project}.{nameof(AssemblyReference)}";
 
-            public const string LibraryReference = nameof(LibraryReference);
+            public const string LibraryReference = $"{Project}.{nameof(LibraryReference)}";
 
-            public const string ProjectReference = nameof(ProjectReference);
-            public const string ProjectDependency = nameof(ProjectDependency);
+            public const string ProjectReference = $"{Project}.{nameof(ProjectReference)}";
+            public const string DependencyProject = $"{Project}.{nameof(DependencyProject)}";
             
-            public const string PackageReference = nameof(PackageReference);
+            public const string PackageReference = $"{Project}.{nameof(PackageReference)}";
 
-            public const string DocumentReference = nameof(DocumentReference);
+            public const string DocumentReference = $"{Project}.{nameof(DocumentReference)}";
         }
     }
 }

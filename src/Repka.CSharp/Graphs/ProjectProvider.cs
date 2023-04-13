@@ -48,11 +48,11 @@ namespace Repka.Graphs
             GraphKey projectKey = new(projectFile.FullName);
             GraphNodeToken projectToken = new(projectKey, ProjectLabels.Project);
             if (projectElement.IsExecutableOutputType())
-                projectToken.Mark(ProjectLabels.ExecutableProject);
+                projectToken.Mark(ProjectLabels.Executable);
             if (projectElement.IsLibraryOutputType())
-                projectToken.Mark(ProjectLabels.LibraryProject);
+                projectToken.Mark(ProjectLabels.Library);
             if (projectElement.IsPackageable())
-                projectToken.Mark(ProjectLabels.PackageProject);
+                projectToken.Mark(ProjectLabels.Packageable);
             foreach (var targetFramework in projectElement.GetTargetFrameworks())
                 projectToken.Mark(ProjectLabels.TargetFramework, targetFramework);
             yield return projectToken;
@@ -67,7 +67,7 @@ namespace Repka.Graphs
             if (!string.IsNullOrWhiteSpace(packageId))
             {
                 GraphKey packageKey = new(packageId);
-                yield return new GraphLinkToken(projectToken.Key, packageKey, ProjectLabels.PackageDefinition);
+                yield return new GraphLinkToken(projectToken.Key, packageKey, ProjectLabels.Package);
             }
 
             foreach (var packageReference in projectElement.GetPackageReferences())
@@ -89,10 +89,10 @@ namespace Repka.Graphs
                 yield return new GraphLinkToken(projectKey, libraryReferenceKey, ProjectLabels.LibraryReference);
             }
 
-            foreach (var frameworkReference in projectElement.GetFrameworkReferences())
+            foreach (var assemblyReference in projectElement.GetAssemblyReferences())
             {
-                GraphKey frameworkReferenceKey = new(frameworkReference.AssemblyName);
-                yield return new GraphLinkToken(projectKey, frameworkReferenceKey, ProjectLabels.FrameworkReference);
+                GraphKey assemblyReferenceKey = new(assemblyReference.AssemblyName);
+                yield return new GraphLinkToken(projectKey, assemblyReferenceKey, ProjectLabels.AssemblyReference);
             }
 
             foreach (var documentReference in projectElement.GetDocumentReferences())
@@ -105,13 +105,13 @@ namespace Repka.Graphs
         private IEnumerable<GraphToken> GetDependencyTokens(ProjectNode projectNode, Dictionary<NuGetIdentifier, ProjectNode> packagableProjects)
         {
             foreach (var dependencyKey in GetProjectDependencies(projectNode, packagableProjects))
-                yield return new GraphLinkToken(projectNode.Key, dependencyKey, ProjectLabels.ProjectDependency);
+                yield return new GraphLinkToken(projectNode.Key, dependencyKey, ProjectLabels.DependencyProject);
         }
 
         private IEnumerable<GraphKey> GetProjectDependencies(ProjectNode projectNode, Dictionary<NuGetIdentifier, ProjectNode> packagableProjects)
         {
             foreach (var projectReference in projectNode.ProjectReferences.ToList())
-                yield return projectReference;
+                yield return new GraphKey(projectReference);
 
             foreach (var referenceDescriptor in projectNode.PackageReferences.ToList())
             {

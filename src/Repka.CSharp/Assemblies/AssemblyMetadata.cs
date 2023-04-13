@@ -1,11 +1,10 @@
 ﻿using Repka.Strings;
-using System.Reflection;
 
 namespace Repka.Assemblies
 {
-    public class AssemblyDescriptor : Normalizable
+    public class AssemblyMetadata : Normalizable
     {
-        public AssemblyDescriptor(string location) : base(location)
+        public AssemblyMetadata(string location) : base(location)
         {
             Location = location;
 
@@ -26,12 +25,12 @@ namespace Repka.Assemblies
 
         public Version? Version => _name.Value?.Version;
 
-        private readonly Lazy<AssemblyName?> _name;
-        private AssemblyName? GetName()
+        private readonly Lazy<System.Reflection.AssemblyName?> _name;
+        private System.Reflection.AssemblyName? GetName()
         {
             try
             {
-                return Exists ? AssemblyName.GetAssemblyName(Location) : default;
+                return Exists ? System.Reflection.AssemblyName.GetAssemblyName(Location) : default;
             }
             catch (Exception)
             {
@@ -41,7 +40,7 @@ namespace Repka.Assemblies
 
         public override bool Equals(object? obj)
         {
-            return obj is AssemblyDescriptor reference &&
+            return obj is AssemblyMetadata reference &&
                 Equals(Normalized, reference.Normalized);
         }
 

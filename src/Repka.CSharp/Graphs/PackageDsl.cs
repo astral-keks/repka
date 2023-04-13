@@ -3,6 +3,8 @@ using NuGet.Versioning;
 using Repka.Assemblies;
 using Repka.Collections;
 using Repka.Packaging;
+using Repka.Paths;
+using static Repka.Graphs.AssemblyDsl;
 using static Repka.Graphs.ProjectDsl;
 
 namespace Repka.Graphs
@@ -33,28 +35,41 @@ namespace Repka.Graphs
 
             public NuGetDescriptor Descriptor { get; }
 
-            public ProjectNode? Project => Inputs(ProjectLabels.PackageDefinition)
+
+            public ProjectNode? Project => Inputs(ProjectLabels.Package)
                 .Select(link => link.Source().AsProject()).OfType<ProjectNode>()
                 .FirstOrDefault();
 
-            public IEnumerable<AssemblyDescriptor> Assemblies(string? targetFramework) => Outputs(PackageLabels.PackageAssembly)
+            
+            public IEnumerable<AbsolutePath> AssemblyAssets(string? targetFramework) => Outputs(PackageLabels.AssemblyAsset)
                 .GroupByTargetFramework().SelectNearest(targetFramework)
-                .Select(nearest => new AssemblyDescriptor(nearest.Link.TargetKey));
+                .Select(nearest => nearest.Link.TargetKey.AsAbsolutePath());
 
-            public IEnumerable<NuGetFrameworkReference> FrameworkReferences(string? targetFramework) => Outputs(PackageLabels.PackageFrameworkReference)
+            
+            public IEnumerable<AssemblyName> AssemblyReferences(string? targetFramework) => Outputs(PackageLabels.AssemblyReference)
                 .GroupByTargetFramework().SelectNearest(targetFramework)
-                .Select(nearest => new NuGetFrameworkReference(nearest.Link.TargetKey, nearest.Framework));
+                .Select(nearest => nearest.Link.TargetKey.AsAssemblyName());
 
-            public IEnumerable<PackageNode> PackageDependencies(string? targetFramework) => Outputs(PackageLabels.PackageDependency)
+            
+            public IEnumerable<ProjectNode> DependingProjects => Inputs(PackageLabels.DependencyPackage)
+                .Select(link => link.Source().AsProject()).OfType<ProjectNode>();
+
+
+            public IEnumerable<NuGetDescriptor> PackageReferences(string? targetFramework) => Outputs(ProjectLabels.PackageReference)
+                .GroupByTargetFramework().SelectNearest(targetFramework)
+                .Select(nearest => NuGetDescriptor.Parse(nearest.Link.TargetKey));
+
+            public IEnumerable<PackageNode> DependencyPackages(string? targetFramework) => Outputs(PackageLabels.DependencyPackage)
                 .GroupByTargetFramework().SelectNearest(targetFramework)
                 .Select(nearest => nearest.Link.Target().AsPackage()).OfType<PackageNode>();
 
-            public IEnumerable<PackageNode> DependingPackages(string? targetFramework) => Inputs(PackageLabels.PackageDependency)
+            public IEnumerable<PackageNode> DependentPackages(string? targetFramework) => Inputs(PackageLabels.DependencyPackage)
                 .GroupByTargetFramework().SelectNearest(targetFramework)
                 .Select(nearest => nearest.Link.Source().AsPackage()).OfType<PackageNode>();
 
-            public IEnumerable<ProjectNode> DependingProjects => Inputs(PackageLabels.PackageDependency)
-                .Select(link => link.Source().AsProject()).OfType<ProjectNode>();
+
+            public IEnumerable<AssemblyNode> RestoredAssemblies => Outputs(AssemblyLabels.Restored)
+                .Select(link => link.Target().AsAssembly()).OfType<AssemblyNode>();
         }
 
         public class PackageGrouping
@@ -96,10 +111,10 @@ namespace Repka.Graphs
         public static class PackageLabels
         {
             public const string Package = nameof(Package);
-            public const string PackageAssembly = nameof(PackageAssembly);
-            public const string PackageReference = nameof(PackageReference);
-            public const string PackageDependency = nameof(PackageDependency);
-            public const string PackageFrameworkReference = nameof(PackageFrameworkReference);
+            public const string AssemblyAsset = $"{Package}.{nameof(AssemblyAsset)}";
+            public const string AssemblyReference = $"{Package}.{nameof(AssemblyReference)}";
+            public const string PackageReference = $"{Package}.{nameof(PackageReference)}";
+            public const string DependencyPackage = $"{Package}.{nameof(DependencyPackage)}";
         }
     }
 }

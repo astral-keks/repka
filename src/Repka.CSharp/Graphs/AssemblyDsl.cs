@@ -1,4 +1,5 @@
 ﻿using Repka.Assemblies;
+using Repka.Paths;
 using static Repka.Graphs.PackageDsl;
 using static Repka.Graphs.ProjectDsl;
 
@@ -15,49 +16,39 @@ namespace Repka.Graphs
             ? new AssemblyNode(node)
             : default;
 
-
-        public static IEnumerable<AssemblyNode> AssemblyDependencies(this ProjectNode project) => project.Outputs(AssemblyLabels.AssemblyDependency)
-            .Select(link => link.Target().AsAssembly()).OfType<AssemblyNode>();
-
-        public static IEnumerable<AssemblyNode> AssemblyDependencies(this PackageNode package) => package.Outputs(AssemblyLabels.AssemblyDependency)
-            .Select(link => link.Target().AsAssembly()).OfType<AssemblyNode>();
-
-
         public class AssemblyNode : GraphNode
         {
-            internal AssemblyNode(GraphNode node) : base(node) 
-            {
-            }
+            internal AssemblyNode(GraphNode node) : base(node) { }
 
-            public string Location => Key;
+            public AbsolutePath Location => new(Key);
 
-            public string? Name => Descriptor.Name;
+            public string? Name => Metadata.Name;
 
-            public Version? Version => Descriptor.Version;
+            public Version? Version => Metadata.Version;
 
-            public AssemblyDescriptor Descriptor => Attribute(AssemblyAttributes.Descriptor)
-                .Value(() => new AssemblyDescriptor(Location));
+            public AssemblyMetadata Metadata => Attribute(AssemblyAttributes.Metadata)
+                .Value(() => new AssemblyMetadata(Location));
 
             public PackageNode? Package => Inputs(AssemblyLabels.Assembly)
                 .Select(link => link.Source().AsPackage()).OfType<PackageNode>()
                 .SingleOrDefault();
 
-            public IEnumerable<ProjectNode> DependentProjects => Inputs(AssemblyLabels.AssemblyDependency)
+            public IEnumerable<ProjectNode> DependentProjects => Inputs(AssemblyLabels.Restored)
                 .Select(link => link.Source()).OfType<ProjectNode>();
 
-            public IEnumerable<PackageNode> DependentPackages => Inputs(AssemblyLabels.AssemblyDependency)
+            public IEnumerable<PackageNode> DependentPackages => Inputs(AssemblyLabels.Restored)
                 .Select(link => link.Source()).OfType<PackageNode>();
         }
 
         public static class AssemblyLabels
         {
             public const string Assembly = nameof(Assembly);
-            public const string AssemblyDependency = nameof(AssemblyDependency);
+            public const string Restored = $"{Assembly}.{nameof(Restored)}";
         }
 
         public static class AssemblyAttributes
         {
-            public const string Descriptor = nameof(Descriptor);
+            public const string Metadata = nameof(Metadata);
         }
     }
 }

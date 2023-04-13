@@ -32,7 +32,7 @@ namespace Repka.Graphs
 
         private IEnumerable<GraphToken> GetDeclarationTokens(DocumentNode documentNode)
         {
-            FileInfo file = documentNode.File;
+            FileInfo file = documentNode.File();
             SyntaxNode? syntax = documentNode.Syntax();
             SemanticModel? semantic = documentNode.Semantic();
 
@@ -98,8 +98,8 @@ namespace Repka.Graphs
             {
                 GraphKey symbolKey = symbol.ToDisplayString(SymbolFormat.Default);
                 int symbolSize = syntax.ToString().Count(ch => ch == '\n') + 1;
-                GraphLabel symbolSizeLabel = new(SymbolLabels.SymbolSize, symbolSize.ToString());
-                yield return new GraphNodeToken(symbolKey, SymbolLabels.IsSymbol, symbolSizeLabel, label);
+                GraphLabel symbolSizeLabel = new(SymbolLabels.Size, symbolSize.ToString());
+                yield return new GraphNodeToken(symbolKey, SymbolLabels.Symbol, symbolSizeLabel, label);
 
                 GraphKey fileKey = file.FullName;
                 yield return new GraphLinkToken(fileKey, symbolKey, SymbolLabels.DefinesSymbol);
@@ -109,7 +109,7 @@ namespace Repka.Graphs
 
         private IEnumerable<GraphToken> GetUsageTokens(DocumentNode documentNode, ISet<GraphKey> scope)
         {
-            FileInfo file = documentNode.File;
+            FileInfo file = documentNode.File();
             SyntaxNode? syntax = documentNode.Syntax();
             SemanticModel? semantic = documentNode.Semantic();
 
@@ -166,7 +166,7 @@ namespace Repka.Graphs
             {
                 GraphKey fileKey = file.FullName;
                 GraphKey typeKey = typeSymbol.ToDisplayString(SymbolFormat.Default);
-                yield return new GraphLinkToken(fileKey, typeKey, SymbolLabels.UsesSymbol);
+                yield return new GraphLinkToken(fileKey, typeKey, SymbolLabels.ReferencesSymbol);
             }
         }
 
@@ -177,7 +177,7 @@ namespace Repka.Graphs
 
             GraphKey fileKey = file.FullName;
             GraphKey memberKey = memberSymbol.ToDisplayString(SymbolFormat.Default);
-            yield return new GraphLinkToken(fileKey, memberKey, SymbolLabels.UsesSymbol);
+            yield return new GraphLinkToken(fileKey, memberKey, SymbolLabels.ReferencesSymbol);
 
             foreach (var token in GetTypeUsageTokens(memberSymbol.ContainingType, file))
                 yield return token;

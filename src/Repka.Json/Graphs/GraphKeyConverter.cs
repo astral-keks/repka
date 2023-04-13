@@ -13,7 +13,7 @@ namespace Repka.Graphs
 
         public override void Write(Utf8JsonWriter writer, GraphKey key, JsonSerializerOptions options)
         {
-            JsonSerializer.Serialize(writer, key.Resource, options);
+            JsonSerializer.Serialize(writer, key.ToString(), options);
         }
     }
 }
