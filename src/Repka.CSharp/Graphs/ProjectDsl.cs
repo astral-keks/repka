@@ -84,12 +84,18 @@ namespace Repka.Graphs
             public IEnumerable<ProjectNode> ReferencedProjects() => Outputs(ProjectLabels.ProjectReference)
                 .Select(link => link.Target().AsProject()).OfType<ProjectNode>();
 
-            public IEnumerable<ProjectNode> DependencyProjects() => Outputs(ProjectLabels.DependencyProject)
+            public IEnumerable<ProjectNode> DependencyProjects(bool includeTransitive = true) => Outputs(ProjectLabels.ProjectDependency)
+                .Where(link => IsDependencyProject(link, includeTransitive))
                 .Select(link => link.Target().AsProject()).OfType<ProjectNode>();
 
-            public IEnumerable<ProjectNode> DependentProjects() => Inputs(ProjectLabels.DependencyProject)
+            public IEnumerable<ProjectNode> DependentProjects(bool includeTransitive = true) => Inputs(ProjectLabels.ProjectDependency)
+                .Where(link => IsDependencyProject(link, includeTransitive))
                 .Select(link => link.Source().AsProject()).OfType<ProjectNode>();
-            
+
+            private bool IsDependencyProject(GraphLink link, bool includeTransitive) => includeTransitive
+                ? link.Labels.ContainsAny(ProjectLabels.DirectDependency, ProjectLabels.TransitiveDependency)
+                : link.Labels.Contains(ProjectLabels.DirectDependency);
+
 
             public IEnumerable<NuGetDescriptor> PackageReferences => Outputs(ProjectLabels.PackageReference)
                 .Select(link => NuGetDescriptor.Parse(link.TargetKey));
@@ -129,7 +135,10 @@ namespace Repka.Graphs
             public const string LibraryReference = $"{Project}.{nameof(LibraryReference)}";
 
             public const string ProjectReference = $"{Project}.{nameof(ProjectReference)}";
-            public const string DependencyProject = $"{Project}.{nameof(DependencyProject)}";
+            public const string ProjectDependency = $"{Project}.{nameof(ProjectDependency)}";
+
+            public const string TransitiveDependency = $"{Project}.{nameof(TransitiveDependency)}";
+            public const string DirectDependency = $"{Project}.{nameof(DirectDependency)}";
             
             public const string PackageReference = $"{Project}.{nameof(PackageReference)}";
 

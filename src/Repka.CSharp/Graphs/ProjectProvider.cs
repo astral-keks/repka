@@ -29,7 +29,7 @@ namespace Repka.Graphs
                 Dictionary<NuGetIdentifier, ProjectNode> packagableProjects = projectNodes
                     .Where(projectNode => projectNode.PackageId is not null)
                     .ToDictionary(projectNode => projectNode.PackageId!);
-                ProgressPercentage dependencyProgress = Progress.Percent("Collecting project dependencies", projectNodes.Count);
+                ProgressPercentage dependencyProgress = Progress.Percent("Restoring project dependencies", projectNodes.Count);
                 Inspection<ProjectNode, (ProjectNode, DependencyKind)> projectInspection = new();
                 IEnumerable<GraphToken> dependencyTokens = projectNodes
                     .Peek(dependencyProgress.Increment)
@@ -108,8 +108,12 @@ namespace Repka.Graphs
         {
             foreach (var (dependencyProject, dependencyKind) in GetDependencyProjects(projectNode, packagableProjects, projectInspection))
             {
-                if (projectNode.HasSdk || !dependencyKind.HasFlag(DependencyKind.Transitive) || dependencyKind.HasFlag(DependencyKind.PackageRef))
-                    yield return new GraphLinkToken(projectNode.Key, dependencyProject.Key, ProjectLabels.DependencyProject);
+                GraphLinkToken token = new(projectNode.Key, dependencyProject.Key, ProjectLabels.ProjectDependency);
+                if (!dependencyKind.HasFlag(DependencyKind.Transitive))
+                    token.Mark(ProjectLabels.DirectDependency);
+                else if (projectNode.HasSdk || dependencyKind.HasFlag(DependencyKind.PackageRef))
+                    token.Mark(ProjectLabels.TransitiveDependency);
+                yield return token;
             }
         }
 
