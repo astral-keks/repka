@@ -82,9 +82,9 @@ namespace Repka.Graphs
 
         private IEnumerable<ProjectReference> GetProjectReferences(ProjectNode projectNode)
         {
-            foreach (var projectDependency in projectNode.DependencyProjects())
+            foreach (var dependencyProject in projectNode.DependencyProjects())
             {
-                yield return new ProjectReference(projectDependency.Id);
+                yield return new ProjectReference(dependencyProject.Id);
             }
         }
 

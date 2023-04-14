@@ -65,18 +65,22 @@ namespace Repka.Graphs
                 yield return new GraphNodeToken(packageKey, PackageLabels.Package);
 
                 foreach (var assembly in package.Assemblies)
-                    yield return new GraphLinkToken(packageKey, assembly.Locaton ?? GraphKey.Null, PackageLabels.AssemblyAsset)
+                {
+                    GraphKey assemblyKey = new(assembly.Locaton ?? GraphKey.Null);
+                    yield return new GraphLinkToken(packageKey, assemblyKey, PackageLabels.AssemblyAsset)
                         .Mark(assembly.Framework.ToMoniker());
+                }
 
                 foreach (var assemblyReference in package.AssemblyReferences)
                 {
-                    yield return new GraphLinkToken(packageKey, assemblyReference.AssemblyName ?? GraphKey.Null, PackageLabels.AssemblyReference)
+                    GraphKey assemblyReferenceKey = new(assemblyReference.AssemblyName ?? GraphKey.Null);
+                    yield return new GraphLinkToken(packageKey, assemblyReferenceKey, PackageLabels.AssemblyReference)
                         .Mark(assemblyReference.Framework.ToMoniker());
                 }
 
                 foreach (var packageReference in package.PackageReferences)
                 {
-                    GraphKey? packageDependencyKey = default;
+                    GraphKey packageDependencyKey = GraphKey.Null;
                     if (packageReference.Descriptor is not null && !packageIdsFromProjects.Contains(packageReference.Descriptor.Id))
                     {
                         GraphKey packageReferenceKey = new(packageReference.Descriptor.ToString());
@@ -87,7 +91,7 @@ namespace Repka.Graphs
                         packageDependencyKey = new(packageDependency.ToString());
                     }
 
-                    yield return new GraphLinkToken(packageKey, packageDependencyKey ?? GraphKey.Null, PackageLabels.DependencyPackage)
+                    yield return new GraphLinkToken(packageKey, packageDependencyKey, PackageLabels.DependencyPackage)
                         .Mark(packageReference.Framework.ToMoniker());
                 }
             }
