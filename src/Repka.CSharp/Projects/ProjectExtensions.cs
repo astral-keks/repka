@@ -1,8 +1,6 @@
 ﻿using Microsoft.Build.Construction;
 using Repka.Collections;
-using System.Reflection;
 using System.Text.RegularExpressions;
-using static Repka.Graphs.AssemblyDsl;
 
 namespace Repka.Projects
 {
@@ -22,13 +20,7 @@ namespace Repka.Projects
 
         public static string? GetPackageId(this ProjectRootElement project)
         {
-            string? packageId = project.Properties.FirstOrDefault(property => property.ElementName == "PackageId")?.Value;
-            return packageId; // !string.IsNullOrWhiteSpace(packageId) ? packageId : project.GetAssemblyName();
-        }
-
-        public static bool IsPackageable(this ProjectRootElement project)
-        {
-            return !string.IsNullOrWhiteSpace(project.GetPackageId());
+            return project.Properties.FirstOrDefault(property => property.ElementName == "PackageId")?.Value;
         }
 
         public static bool IsExecutableOutputType(this ProjectRootElement project)

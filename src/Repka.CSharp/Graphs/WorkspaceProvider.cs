@@ -61,7 +61,7 @@ namespace Repka.Graphs
             Inspection<ProjectNode, AssemblyMetadata> assemblyDescriptorInspection, 
             Inspection<AssemblyMetadata, MetadataReference> metadataReferenceInspection)
         {
-            ICollection<ProjectReference> projectReferences = GetProjectReferences(projectNode, projectReferenceInspection);
+            ICollection<ProjectReference> projectReferences = GetProjectReferences(projectNode, projectReferenceInspection).ToList();
             ICollection<AssemblyMetadata> assemblyDependencies = GetAssemblyDependencies(projectNode, assemblyDescriptorInspection);
             ICollection<MetadataReference> metadataReferences = assemblyDependencies
                 .SelectMany(assembly => GetMetadataReferences(assembly, metadataReferenceInspection))
@@ -83,18 +83,12 @@ namespace Repka.Graphs
             return documentInfo;
         }
 
-        private ICollection<ProjectReference> GetProjectReferences(ProjectNode projectNode, 
+        private IEnumerable<ProjectReference> GetProjectReferences(ProjectNode projectNode, 
             Inspection<ProjectNode, ProjectReference> projectReferenceInspection)
         {
-            return projectReferenceInspection.InspectOrGet(projectNode, () => visitProject().ToHashSet());
-            IEnumerable<ProjectReference> visitProject()
+            foreach (var projectDependency in projectNode.DependencyProjects())
             {
-                foreach (var projectDependency in projectNode.DependencyProjects())
-                {
-                    yield return new ProjectReference(projectDependency.Id);
-                    foreach (var reference in GetProjectReferences(projectDependency, projectReferenceInspection))
-                        yield return reference;
-                }
+                yield return new ProjectReference(projectDependency.Id);
             }
         }
 

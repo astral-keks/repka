@@ -46,6 +46,8 @@ namespace Repka.Graphs
 
             public string AssemblyName => Tag(ProjectLabels.AssemblyName).OrElse(Name);
 
+            public bool IsPackageable => PackageId is not null;
+
             public NuGetIdentifier? PackageId => Outputs(ProjectLabels.Package)
                 .Select(link => new NuGetIdentifier(link.TargetKey.ToString()))
                 .FirstOrDefault();
@@ -113,7 +115,6 @@ namespace Repka.Graphs
         public static class ProjectLabels
         {
             public const string Project = nameof(Project);
-            public const string Packageable = $"{Project}.{nameof(Packageable)}";
             public const string Executable = $"{Project}.{nameof(Executable)}";
             public const string Library = $"{Project}.{nameof(Library)}";
 

@@ -4,7 +4,6 @@ using Repka.Collections;
 using Repka.Diagnostics;
 using Repka.Packaging;
 using Repka.Projects;
-using static Repka.Graphs.PackageDsl;
 using static Repka.Graphs.ProjectDsl;
 
 namespace Repka.Graphs
@@ -31,9 +30,10 @@ namespace Repka.Graphs
                     .Where(projectNode => projectNode.PackageId is not null)
                     .ToDictionary(projectNode => projectNode.PackageId!);
                 ProgressPercentage dependencyProgress = Progress.Percent("Collecting project dependencies", projectNodes.Count);
+                Inspection<ProjectNode, (ProjectNode, DependencyKind)> projectInspection = new();
                 IEnumerable<GraphToken> dependencyTokens = projectNodes
                     .Peek(dependencyProgress.Increment)
-                    .SelectMany(projectNode => GetDependencyTokens(projectNode, packagableProjects))
+                    .SelectMany(projectNode => GetDependencyTokens(projectNode, packagableProjects, projectInspection))
                     .ToList();
                 foreach (var token in dependencyTokens)
                     graph.Add(token);
@@ -51,8 +51,6 @@ namespace Repka.Graphs
                 projectToken.Mark(ProjectLabels.Executable);
             if (projectElement.IsLibraryOutputType())
                 projectToken.Mark(ProjectLabels.Library);
-            if (projectElement.IsPackageable())
-                projectToken.Mark(ProjectLabels.Packageable);
             foreach (var targetFramework in projectElement.GetTargetFrameworks())
                 projectToken.Mark(ProjectLabels.TargetFramework, targetFramework);
             string? assemblyName = projectElement.GetAssemblyName();
@@ -105,21 +103,40 @@ namespace Repka.Graphs
             }
         }
 
-        private IEnumerable<GraphToken> GetDependencyTokens(ProjectNode projectNode, Dictionary<NuGetIdentifier, ProjectNode> packagableProjects)
+        private IEnumerable<GraphToken> GetDependencyTokens(ProjectNode projectNode, Dictionary<NuGetIdentifier, ProjectNode> packagableProjects,
+            Inspection<ProjectNode, (ProjectNode, DependencyKind)> projectInspection)
         {
-            foreach (var dependencyKey in GetProjectDependencies(projectNode, packagableProjects))
-                yield return new GraphLinkToken(projectNode.Key, dependencyKey, ProjectLabels.DependencyProject);
+            foreach (var (dependencyProject, dependencyKind) in GetDependencyProjects(projectNode, packagableProjects, projectInspection))
+            {
+                if (projectNode.HasSdk || !dependencyKind.HasFlag(DependencyKind.Transitive) || dependencyKind.HasFlag(DependencyKind.PackageRef))
+                    yield return new GraphLinkToken(projectNode.Key, dependencyProject.Key, ProjectLabels.DependencyProject);
+            }
         }
 
-        private IEnumerable<GraphKey> GetProjectDependencies(ProjectNode projectNode, Dictionary<NuGetIdentifier, ProjectNode> packagableProjects)
+        private enum DependencyKind { ProjectRef = 1, PackageRef = 2, Transitive = 4 }
+        private IEnumerable<(ProjectNode, DependencyKind)> GetDependencyProjects(ProjectNode projectNode, 
+            Dictionary<NuGetIdentifier, ProjectNode> packagableProjects,
+            Inspection<ProjectNode, (ProjectNode, DependencyKind)> projectInspection)
         {
-            foreach (var projectReference in projectNode.ProjectReferences.ToList())
-                yield return new GraphKey(projectReference);
-
-            foreach (var referenceDescriptor in projectNode.PackageReferences.ToList())
+            return projectInspection.InspectOrGet(projectNode, () => visitProject().ToHashSet());
+            IEnumerable<(ProjectNode, DependencyKind)> visitProject()
             {
-                if (packagableProjects.TryGetValue(referenceDescriptor.Id, out ProjectNode? packagableNode))
-                    yield return packagableNode.Key;
+                foreach (var referencedProject in projectNode.ReferencedProjects().ToList())
+                {
+                    yield return (referencedProject, DependencyKind.ProjectRef);
+                    foreach (var (dependencyProject, dependencyKind) in GetDependencyProjects(referencedProject, packagableProjects, projectInspection))
+                        yield return (dependencyProject, dependencyKind | DependencyKind.Transitive);
+                }
+
+                foreach (var packageReference in projectNode.PackageReferences.ToList())
+                {
+                    if (packagableProjects.TryGetValue(packageReference.Id, out ProjectNode? packagableProject))
+                    {
+                        yield return (packagableProject, DependencyKind.PackageRef);
+                        foreach (var (dependencyProject, _) in GetDependencyProjects(packagableProject, packagableProjects, projectInspection))
+                            yield return (dependencyProject, DependencyKind.PackageRef | DependencyKind.Transitive);
+                    }
+                }
             }
         }
     }

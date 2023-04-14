@@ -3,6 +3,7 @@ using Repka.Collections;
 using Repka.Diagnostics;
 using Repka.Frameworks;
 using Repka.Paths;
+using System.Collections.Generic;
 using static Repka.Graphs.AssemblyDsl;
 using static Repka.Graphs.PackageDsl;
 using static Repka.Graphs.ProjectDsl;
@@ -75,8 +76,10 @@ namespace Repka.Graphs
         private IEnumerable<AbsolutePath> GetProjectAssemblies(ProjectNode projectNode,
             Inspection<ProjectNode, AbsolutePath> projectInspection)
         {
-            return projectInspection.InspectOrGet(projectNode, () => visitProject().ToHashSet());
-            IEnumerable<AbsolutePath> visitProject()
+            return projectNode.DependencyProjects().Prepend(projectNode)
+                .SelectMany(projectNode => projectInspection.InspectOrGet(projectNode, () => visitProject(projectNode).ToHashSet()))
+                .ToHashSet();
+            IEnumerable<AbsolutePath> visitProject(ProjectNode projectNode)
             {
                 foreach (var assembly in TargetFramework.Assemblies)
                     yield return new AbsolutePath(assembly.Location);
@@ -95,12 +98,6 @@ namespace Repka.Graphs
                 {
                     foreach (var assemblyNode in dependencyPackage.RestoredAssemblies())
                         yield return assemblyNode.Location;
-                }
-
-                foreach (var dependencyProject in projectNode.DependencyProjects())
-                {
-                    foreach (var assemblyPath in GetProjectAssemblies(dependencyProject, projectInspection))
-                        yield return assemblyPath;
                 }
             }
         }
