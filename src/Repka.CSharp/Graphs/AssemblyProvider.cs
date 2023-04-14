@@ -18,7 +18,7 @@ namespace Repka.Graphs
             List<PackageNode> packageNodes = graph.Packages().ToList();
             ProgressPercentage packageProgress = Progress.Percent("Resolving package assemblies", packageNodes.Count);
             Inspection<PackageNode, AbsolutePath> packageInspection = new();
-            IEnumerable<GraphToken> packageTokens = packageNodes//.AsParallel(8)
+            IEnumerable<GraphToken> packageTokens = packageNodes
                 .Peek(packageProgress.Increment)
                 .SelectMany(packageNode => GetAssemblyTokens(GetPackageAssemblies(packageNode, packageInspection), packageNode))
                 .ToList();
@@ -29,7 +29,7 @@ namespace Repka.Graphs
             List<ProjectNode> projectNodes = graph.Projects().ToList();
             ProgressPercentage projectProgress = Progress.Percent("Resolving project assemblies", projectNodes.Count);
             Inspection<ProjectNode, AbsolutePath> projectInspection = new();
-            IEnumerable<GraphToken> projectTokens = projectNodes//.AsParallel(8)
+            IEnumerable<GraphToken> projectTokens = projectNodes
                 .Peek(projectProgress.Increment)
                 .SelectMany(projectNode => GetAssemblyTokens(GetProjectAssemblies(projectNode, projectInspection), projectNode))
                 .ToList();
@@ -91,13 +91,13 @@ namespace Repka.Graphs
                         yield return new AbsolutePath(assembly.Location);
                 }
 
-                foreach (var dependencyPackage in projectNode.DependencyPackages)
+                foreach (var dependencyPackage in projectNode.DependencyPackages())
                 {
-                    foreach (var assemblyNode in dependencyPackage.RestoredAssemblies)
+                    foreach (var assemblyNode in dependencyPackage.RestoredAssemblies())
                         yield return assemblyNode.Location;
                 }
 
-                foreach (var dependencyProject in projectNode.DependencyProjects)
+                foreach (var dependencyProject in projectNode.DependencyProjects())
                 {
                     foreach (var assemblyPath in GetProjectAssemblies(dependencyProject, projectInspection))
                         yield return assemblyPath;

@@ -7,8 +7,10 @@ namespace Repka.Graphs
     public static class DocumentDsl
     {
         public static IEnumerable<DocumentNode> Documents(this Graph graph) => graph.Nodes()
-            .Select(node => node.AsDocument())
-            .OfType<DocumentNode>();
+            .Select(node => node.AsDocument()).OfType<DocumentNode>();
+
+        public static IEnumerable<DocumentNode> Documents(this Graph graph, string name) => graph.Documents()
+            .Where(document => string.Equals(document.Name, name, StringComparison.OrdinalIgnoreCase));
 
         public static DocumentNode? Document(this Graph graph, string? path) => path is not null ? graph.Document(new GraphKey(path)) : default;
 
@@ -28,18 +30,16 @@ namespace Repka.Graphs
 
             public FileInfo File() => new(Location);
 
-            public ProjectNode Project => Projects.Single();
+            public ProjectNode Project() => Projects().Single();
 
-            public IEnumerable<ProjectNode> Projects => Inputs(DocumentLabels.Document)
+            public IEnumerable<ProjectNode> Projects() => Inputs(DocumentLabels.Document)
                 .Select(link => link.Source().AsProject()).OfType<ProjectNode>();
 
-            public IEnumerable<SymbolNode> DefinedSymbols => Outputs(SymbolLabels.DefinesSymbol)
+            public IEnumerable<SymbolNode> DefinedSymbols() => Outputs(SymbolLabels.DefinesSymbol)
                 .Select(link => link.Target().AsSymbol()).OfType<SymbolNode>();
 
-            public IEnumerable<SymbolNode> ReferencedSymbols => Outputs(SymbolLabels.ReferencesSymbol)
+            public IEnumerable<SymbolNode> ReferencedSymbols() => Outputs(SymbolLabels.ReferencesSymbol)
                 .Select(link => link.Target().AsSymbol()).OfType<SymbolNode>();
-
-            public Stream Read() => System.IO.File.OpenRead(Location);
         }
 
         public static class DocumentLabels

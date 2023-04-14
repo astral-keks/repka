@@ -8,6 +8,9 @@ namespace Repka.Graphs
         public static IEnumerable<SolutionNode> Solutions(this Graph graph) => graph.Nodes()
             .Select(node => node.AsSolution()).OfType<SolutionNode>();
 
+        public static IEnumerable<SolutionNode> Solutions(this Graph graph, string name) => graph.Solutions()
+            .Where(solution => string.Equals(solution.Name, name, StringComparison.OrdinalIgnoreCase));
+
         public static SolutionNode? Solution(this Graph graph, GraphKey key) => graph.Node(key).AsSolution();
 
         public static SolutionNode? AsSolution(this GraphNode? node) =>
@@ -21,10 +24,10 @@ namespace Repka.Graphs
 
             public string? Name => Path.GetFileNameWithoutExtension(Location);
 
-            public IEnumerable<AbsolutePath> ProjectReferences => Outputs(SolutionLabels.SolutionProject)
+            public IEnumerable<AbsolutePath> ProjectReferences() => Outputs(SolutionLabels.SolutionProject)
                 .Select(link => link.TargetKey.AsAbsolutePath());
 
-            public IEnumerable<ProjectNode> Projects => Outputs(SolutionLabels.SolutionProject)
+            public IEnumerable<ProjectNode> Projects() => Outputs(SolutionLabels.SolutionProject)
                 .Select(link => link.Target().AsProject()).OfType<ProjectNode>();
         }
 

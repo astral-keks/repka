@@ -25,6 +25,7 @@ namespace Repka.Frameworks
                 "System.Core",
                 "System.Data",
                 "System.Drawing",
+                "System.ComponentModel.Composition",
                 "System.IO.Compression",
                 "System.IO.Compression.FileSystem",
                 "System.Numerics",

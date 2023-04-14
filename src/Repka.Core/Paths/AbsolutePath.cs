@@ -12,5 +12,7 @@ namespace Repka.Paths
             if (!Path.IsPathRooted(Original))
                 throw new ArgumentException($"Path {Original} is not absolute");
         }
+
+        public bool Includes(RelativePath relativePath) => Original.Contains(relativePath.Original, StringComparison.OrdinalIgnoreCase);
     }
 }

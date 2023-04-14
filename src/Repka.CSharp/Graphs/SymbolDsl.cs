@@ -31,10 +31,10 @@ namespace Repka.Graphs
 
             public bool IsMethod => Labeled(SymbolLabels.IsMethod);
 
-            public IEnumerable<DocumentNode> DefiningDocuments => Inputs(SymbolLabels.DefinesSymbol)
+            public IEnumerable<DocumentNode> DefiningDocuments() => Inputs(SymbolLabels.DefinesSymbol)
                 .Select(link => link.Source().AsDocument()).OfType<DocumentNode>();
 
-            public IEnumerable<DocumentNode> ReferencingDocuments => Inputs(SymbolLabels.ReferencesSymbol)
+            public IEnumerable<DocumentNode> ReferencingDocuments() => Inputs(SymbolLabels.ReferencesSymbol)
                 .Select(link => link.Source().AsDocument()).OfType<DocumentNode>();
         }
 

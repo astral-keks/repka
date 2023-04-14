@@ -10,6 +10,9 @@ namespace Repka.Graphs
         public static IEnumerable<AssemblyNode> Assemblies(this Graph graph) => graph.Nodes()
             .Select(node => node.AsAssembly()).OfType<AssemblyNode>();
 
+        public static IEnumerable<AssemblyNode> Assemblies(this Graph graph, string name) => graph.Assemblies()
+            .Where(assembly => string.Equals(assembly.Name, name, StringComparison.OrdinalIgnoreCase));
+
         public static AssemblyNode? Assembly(this Graph graph, GraphKey key) => graph.Node(key).AsAssembly();
 
         public static AssemblyNode? AsAssembly(this GraphNode? node) => node?.Labels.Contains(AssemblyLabels.Assembly) == true
@@ -29,15 +32,15 @@ namespace Repka.Graphs
             public AssemblyMetadata Metadata => Attribute(AssemblyAttributes.Metadata)
                 .Value(() => new AssemblyMetadata(Location));
 
-            public PackageNode? Package => Inputs(AssemblyLabels.Assembly)
+            public PackageNode? Package() => Inputs(AssemblyLabels.Assembly)
                 .Select(link => link.Source().AsPackage()).OfType<PackageNode>()
                 .SingleOrDefault();
 
-            public IEnumerable<ProjectNode> DependentProjects => Inputs(AssemblyLabels.Restored)
-                .Select(link => link.Source()).OfType<ProjectNode>();
+            public IEnumerable<ProjectNode> DependentProjects() => Inputs(AssemblyLabels.Restored)
+                .Select(link => link.Source().AsProject()).OfType<ProjectNode>();
 
-            public IEnumerable<PackageNode> DependentPackages => Inputs(AssemblyLabels.Restored)
-                .Select(link => link.Source()).OfType<PackageNode>();
+            public IEnumerable<PackageNode> DependentPackages() => Inputs(AssemblyLabels.Restored)
+                .Select(link => link.Source().AsPackage()).OfType<PackageNode>();
         }
 
         public static class AssemblyLabels

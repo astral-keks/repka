@@ -20,11 +20,16 @@ namespace Repka.Collections
         }
     }
 
-    public interface IOptional<out T> : IEnumerable<T>
+    public interface IOptional<T> : IEnumerable<T>
     {
         public bool HasValue { get; }
 
         public T Value { get; }
+
+        public T OrElse(T value)
+        {
+            return HasValue ? Value : value;
+        }
 
         public T? OrElseDefault()
         {

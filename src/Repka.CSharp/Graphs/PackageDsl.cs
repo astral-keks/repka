@@ -36,7 +36,7 @@ namespace Repka.Graphs
             public NuGetDescriptor Descriptor { get; }
 
 
-            public ProjectNode? Project => Inputs(ProjectLabels.Package)
+            public ProjectNode? Project() => Inputs(ProjectLabels.Package)
                 .Select(link => link.Source().AsProject()).OfType<ProjectNode>()
                 .FirstOrDefault();
 
@@ -51,7 +51,7 @@ namespace Repka.Graphs
                 .Select(nearest => nearest.Link.TargetKey.AsAssemblyName());
 
             
-            public IEnumerable<ProjectNode> DependingProjects => Inputs(PackageLabels.DependencyPackage)
+            public IEnumerable<ProjectNode> DependingProjects() => Inputs(PackageLabels.DependencyPackage)
                 .Select(link => link.Source().AsProject()).OfType<ProjectNode>();
 
 
@@ -68,7 +68,7 @@ namespace Repka.Graphs
                 .Select(nearest => nearest.Link.Source().AsPackage()).OfType<PackageNode>();
 
 
-            public IEnumerable<AssemblyNode> RestoredAssemblies => Outputs(AssemblyLabels.Restored)
+            public IEnumerable<AssemblyNode> RestoredAssemblies() => Outputs(AssemblyLabels.Restored)
                 .Select(link => link.Target().AsAssembly()).OfType<AssemblyNode>();
         }
 

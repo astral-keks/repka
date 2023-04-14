@@ -39,11 +39,11 @@ namespace Repka.Workspaces
                     Title = project.Name,
                     Text = $"Project {project.Name} at {inspector.StripRoot(project.FilePath)}",
                     Records = project.Documents
-                    .AsParallel().WithDegreeOfParallelism(8)
-                    .Select(document => document.ToReport(inspector))
-                    .OfType<Report>()
-                    .Where(report => report.Records.Any())
-                    .ToList()
+                        .AsParallel().WithDegreeOfParallelism(8)
+                        .Select(document => document.ToReport(inspector))
+                        .OfType<Report>()
+                        .Where(report => report.Records.Any())
+                        .ToList()
                 }
                 : default;
         }

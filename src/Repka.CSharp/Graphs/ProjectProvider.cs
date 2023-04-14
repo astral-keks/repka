@@ -55,6 +55,9 @@ namespace Repka.Graphs
                 projectToken.Mark(ProjectLabels.Packageable);
             foreach (var targetFramework in projectElement.GetTargetFrameworks())
                 projectToken.Mark(ProjectLabels.TargetFramework, targetFramework);
+            string? assemblyName = projectElement.GetAssemblyName();
+            if (!string.IsNullOrWhiteSpace(assemblyName))
+                projectToken.Mark(ProjectLabels.AssemblyName, assemblyName);
             yield return projectToken;
 
             if (!string.IsNullOrWhiteSpace(projectElement.Sdk))

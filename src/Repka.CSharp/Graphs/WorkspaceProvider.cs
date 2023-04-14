@@ -7,6 +7,7 @@ using static Repka.Graphs.WorkspaceDsl;
 using static Repka.Graphs.ProjectDsl;
 using static Repka.Graphs.DocumentDsl;
 using AssemblyMetadata = Repka.Assemblies.AssemblyMetadata;
+using Microsoft.CodeAnalysis.CSharp;
 
 namespace Repka.Graphs
 {
@@ -24,7 +25,7 @@ namespace Repka.Graphs
             Inspection<ProjectNode, ProjectReference> projectReferenceInspection = new();
             Inspection<ProjectNode, AssemblyMetadata> assemblyDescriptorInspection = new();
             Inspection<AssemblyMetadata, MetadataReference> metadataReferenceInspection = new();
-            IEnumerable<ProjectInfo> projectsInfo = projectNodes//.AsParallel(8)                
+            IEnumerable<ProjectInfo> projectsInfo = projectNodes                
                 .Peek(projectProgress.Increment)
                 .Select(projectNode => CreateProject(projectNode,
                     projectReferenceInspection,
@@ -57,7 +58,7 @@ namespace Repka.Graphs
 
         private ProjectInfo CreateProject(ProjectNode projectNode,
             Inspection<ProjectNode, ProjectReference> projectReferenceInspection,
-            Inspection<ProjectNode, AssemblyMetadata> assemblyDescriptorInspection,
+            Inspection<ProjectNode, AssemblyMetadata> assemblyDescriptorInspection, 
             Inspection<AssemblyMetadata, MetadataReference> metadataReferenceInspection)
         {
             ICollection<ProjectReference> projectReferences = GetProjectReferences(projectNode, projectReferenceInspection);
@@ -65,17 +66,17 @@ namespace Repka.Graphs
             ICollection<MetadataReference> metadataReferences = assemblyDependencies
                 .SelectMany(assembly => GetMetadataReferences(assembly, metadataReferenceInspection))
                 .ToList();
-            List<DocumentInfo> documents = projectNode.Documents.AsParallel()
+            List<DocumentInfo> documents = projectNode.Documents().AsParallel()
                 .Select(documentNode => CreateDocument(documentNode, projectNode))
                 .ToList();
-            return ProjectInfo.Create(projectNode.Id, VersionStamp.Create(), projectNode.Name, projectNode.Name, LanguageNames.CSharp,
+            return ProjectInfo.Create(projectNode.Id, VersionStamp.Create(), projectNode.Name, projectNode.AssemblyName, LanguageNames.CSharp,
                 filePath: projectNode.Location, documents: documents, metadataReferences: metadataReferences, projectReferences: projectReferences);
         }
 
         private DocumentInfo CreateDocument(DocumentNode documentNode, ProjectNode projectNode)
         {
             DocumentId documentId = DocumentId.CreateNewId(projectNode.Id);
-            using Stream documentStream = documentNode.Read();
+            using Stream documentStream = documentNode.File().OpenRead();
             TextAndVersion documentText = TextAndVersion.Create(SourceText.From(documentStream), VersionStamp.Create(), documentNode.Location);
             DocumentInfo documentInfo = DocumentInfo.Create(documentId, documentNode.Name,
                 loader: TextLoader.From(documentText), filePath: documentNode.Location);
@@ -88,7 +89,7 @@ namespace Repka.Graphs
             return projectReferenceInspection.InspectOrGet(projectNode, () => visitProject().ToHashSet());
             IEnumerable<ProjectReference> visitProject()
             {
-                foreach (var projectDependency in projectNode.DependencyProjects)
+                foreach (var projectDependency in projectNode.DependencyProjects())
                 {
                     yield return new ProjectReference(projectDependency.Id);
                     foreach (var reference in GetProjectReferences(projectDependency, projectReferenceInspection))
@@ -103,7 +104,7 @@ namespace Repka.Graphs
             return assemblyDescriptorInspection.InspectOrGet(projectNode, () => visitProject().ToHashSet());
             IEnumerable<AssemblyMetadata> visitProject()
             {
-                IEnumerable<AssemblyMetadata> assemblies = projectNode.RestoredAssemblies
+                IEnumerable<AssemblyMetadata> assemblies = projectNode.RestoredAssemblies()
                     .Select(assemblyNode => assemblyNode.Metadata)
                     .Where(assembly => assembly.Exists)
                     .GroupBy(assembly => assembly.Name)

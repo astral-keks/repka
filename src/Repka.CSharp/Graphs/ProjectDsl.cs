@@ -14,6 +14,9 @@ namespace Repka.Graphs
         public static IEnumerable<ProjectNode> Projects(this Graph graph) => graph.Nodes()
             .Select(node => node.AsProject()).OfType<ProjectNode>();
 
+        public static IEnumerable<ProjectNode> Projects(this Graph graph, string name) => graph.Projects()
+            .Where(project => string.Equals(project.Name, name, StringComparison.OrdinalIgnoreCase));
+
         public static ProjectNode? Project(this Graph graph, GraphKey key) => graph.Node(key).AsProject();
 
         public static ProjectNode? AsProject(this GraphNode? node) =>
@@ -25,7 +28,7 @@ namespace Repka.Graphs
 
             public string Name => Path.GetFileNameWithoutExtension(Key);
 
-            public ProjectId Id => ProjectId.CreateFromSerialized(Key.AsGuid());
+            public ProjectId Id => ProjectId.CreateFromSerialized(Key.AsGuid(), Location);
 
             public AbsolutePath Directory => Path.GetDirectoryName(Key) 
                 ?? throw new DirectoryNotFoundException("Project directory could not be resolved");
@@ -41,12 +44,13 @@ namespace Repka.Graphs
             public IEnumerable<string> TargetFrameworks => Tags(ProjectLabels.TargetFramework)
                 .Select(tag => tag.Value);
 
+            public string AssemblyName => Tag(ProjectLabels.AssemblyName).OrElse(Name);
 
             public NuGetIdentifier? PackageId => Outputs(ProjectLabels.Package)
                 .Select(link => new NuGetIdentifier(link.TargetKey.ToString()))
                 .FirstOrDefault();
 
-            public PackageNode? Package => Outputs(ProjectLabels.Package)
+            public PackageNode? Package() => Outputs(ProjectLabels.Package)
                 .Select(link => link.Target().AsPackage()).OfType<PackageNode>()
                 .FirstOrDefault();
 
@@ -54,10 +58,10 @@ namespace Repka.Graphs
             public IEnumerable<AbsolutePath> DocumentReferences => Outputs(ProjectLabels.DocumentReference)
                 .Select(link => link.TargetKey.AsAbsolutePath());
 
-            public IEnumerable<DocumentNode> ReferencedDocuments => Outputs(ProjectLabels.DocumentReference)
+            public IEnumerable<DocumentNode> ReferencedDocuments() => Outputs(ProjectLabels.DocumentReference)
                 .Select(link => link.Target().AsDocument()).OfType<DocumentNode>();
 
-            public IEnumerable<DocumentNode> Documents => Outputs(DocumentLabels.Document)
+            public IEnumerable<DocumentNode> Documents() => Outputs(DocumentLabels.Document)
                 .Select(link => link.Target().AsDocument()).OfType<DocumentNode>();
 
 
@@ -68,41 +72,41 @@ namespace Repka.Graphs
             public IEnumerable<AbsolutePath> LibraryReferences => Outputs(ProjectLabels.LibraryReference)
                 .Select(link => link.TargetKey.AsAbsolutePath());
 
-            public IEnumerable<AssemblyNode> ReferencedLibraries => Outputs(ProjectLabels.LibraryReference)
+            public IEnumerable<AssemblyNode> ReferencedLibraries() => Outputs(ProjectLabels.LibraryReference)
                 .Select(link => link.Target().AsAssembly()).OfType<AssemblyNode>();
 
 
             public IEnumerable<AbsolutePath> ProjectReferences => Outputs(ProjectLabels.ProjectReference)
                 .Select(link => link.TargetKey.AsAbsolutePath());
             
-            public IEnumerable<ProjectNode> ReferencedProjects => Outputs(ProjectLabels.ProjectReference)
+            public IEnumerable<ProjectNode> ReferencedProjects() => Outputs(ProjectLabels.ProjectReference)
                 .Select(link => link.Target().AsProject()).OfType<ProjectNode>();
 
-            public IEnumerable<ProjectNode> DependencyProjects => Outputs(ProjectLabels.DependencyProject)
+            public IEnumerable<ProjectNode> DependencyProjects() => Outputs(ProjectLabels.DependencyProject)
                 .Select(link => link.Target().AsProject()).OfType<ProjectNode>();
 
-            public IEnumerable<ProjectNode> DependentProjects => Inputs(ProjectLabels.DependencyProject)
+            public IEnumerable<ProjectNode> DependentProjects() => Inputs(ProjectLabels.DependencyProject)
                 .Select(link => link.Source().AsProject()).OfType<ProjectNode>();
             
 
             public IEnumerable<NuGetDescriptor> PackageReferences => Outputs(ProjectLabels.PackageReference)
                 .Select(link => NuGetDescriptor.Parse(link.TargetKey));
             
-            public IEnumerable<PackageNode> ReferencedPackages => Outputs(ProjectLabels.PackageReference)
+            public IEnumerable<PackageNode> ReferencedPackages() => Outputs(ProjectLabels.PackageReference)
                 .Select(link => link.Target().AsPackage()).OfType<PackageNode>();
 
-            public IEnumerable<PackageNode> DependencyPackages => Outputs(PackageLabels.DependencyPackage)
+            public IEnumerable<PackageNode> DependencyPackages() => Outputs(PackageLabels.DependencyPackage)
                 .Select(link => link.Target().AsPackage()).OfType<PackageNode>();
 
-            public IEnumerable<PackageNode> DependentPackages => Inputs(PackageLabels.DependencyPackage)
+            public IEnumerable<PackageNode> DependentPackages() => Inputs(PackageLabels.DependencyPackage)
                 .Select(link => link.Source().AsPackage()).OfType<PackageNode>();
 
 
-            public IEnumerable<AssemblyNode> RestoredAssemblies => Outputs(AssemblyLabels.Restored)
+            public IEnumerable<AssemblyNode> RestoredAssemblies() => Outputs(AssemblyLabels.Restored)
                 .Select(link => link.Target().AsAssembly()).OfType<AssemblyNode>();
 
 
-            public IEnumerable<SolutionNode> Solutions => Inputs(SolutionLabels.SolutionProject)
+            public IEnumerable<SolutionNode> Solutions() => Inputs(SolutionLabels.SolutionProject)
                 .Select(link => link.Source().AsSolution()).OfType<SolutionNode>();
         }
 
@@ -114,6 +118,7 @@ namespace Repka.Graphs
             public const string Library = $"{Project}.{nameof(Library)}";
 
             public const string Sdk = $"{Project}.{nameof(Sdk)}";
+            public const string AssemblyName = $"{Project}.{nameof(AssemblyName)}";
             public const string TargetFramework = $"{Project}.{nameof(TargetFramework)}";
 
             public const string Package = $"{Project}.{nameof(Package)}";
