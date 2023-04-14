@@ -22,13 +22,11 @@ namespace Repka.Graphs
 
             List<ProjectNode> projectNodes = graph.Projects().ToList();
             ProgressPercentage projectProgress = Progress.Percent("Creating workspace", projectNodes.Count);
-            Inspection<ProjectNode, ProjectReference> projectReferenceInspection = new();
             Inspection<ProjectNode, AssemblyMetadata> assemblyDescriptorInspection = new();
             Inspection<AssemblyMetadata, MetadataReference> metadataReferenceInspection = new();
             IEnumerable<ProjectInfo> projectsInfo = projectNodes                
                 .Peek(projectProgress.Increment)
                 .Select(projectNode => CreateProject(projectNode,
-                    projectReferenceInspection,
                     assemblyDescriptorInspection,
                     metadataReferenceInspection));
             foreach (var projectInfo in projectsInfo)
@@ -57,11 +55,10 @@ namespace Repka.Graphs
         }
 
         private ProjectInfo CreateProject(ProjectNode projectNode,
-            Inspection<ProjectNode, ProjectReference> projectReferenceInspection,
             Inspection<ProjectNode, AssemblyMetadata> assemblyDescriptorInspection, 
             Inspection<AssemblyMetadata, MetadataReference> metadataReferenceInspection)
         {
-            ICollection<ProjectReference> projectReferences = GetProjectReferences(projectNode, projectReferenceInspection).ToList();
+            ICollection<ProjectReference> projectReferences = GetProjectReferences(projectNode).ToList();
             ICollection<AssemblyMetadata> assemblyDependencies = GetAssemblyDependencies(projectNode, assemblyDescriptorInspection);
             ICollection<MetadataReference> metadataReferences = assemblyDependencies
                 .SelectMany(assembly => GetMetadataReferences(assembly, metadataReferenceInspection))
@@ -83,8 +80,7 @@ namespace Repka.Graphs
             return documentInfo;
         }
 
-        private IEnumerable<ProjectReference> GetProjectReferences(ProjectNode projectNode, 
-            Inspection<ProjectNode, ProjectReference> projectReferenceInspection)
+        private IEnumerable<ProjectReference> GetProjectReferences(ProjectNode projectNode)
         {
             foreach (var projectDependency in projectNode.DependencyProjects())
             {
