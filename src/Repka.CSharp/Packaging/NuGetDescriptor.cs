@@ -48,6 +48,8 @@ namespace Repka.Packaging
 
         public NuGetVersion? Version { get; }
 
+        public NuGetDescriptor ToUnversioned() => new(Id, default);
+
         public static bool operator ==(NuGetDescriptor? left, NuGetDescriptor? right) => Equals(left, right);
 
         public static bool operator !=(NuGetDescriptor? left, NuGetDescriptor? right) => !Equals(left, right);
@@ -71,7 +73,7 @@ namespace Repka.Packaging
 
         public override string ToString()
         {
-            return $"{Id}:{Version}";
+            return $"{Id}:{Version?.ToString() ?? "*"}";
         }
     }
 }

@@ -35,8 +35,9 @@ namespace Repka.Graphs
 
             public NuGetVersion? Version => _descriptor.Version;
 
-            public ProjectNode? Project() => Graph.Links(new GraphKey(Id.ToString()), ProjectLabels.Package)
-                .Where(link => link.TargetKey == Id.ToString())
+            public PackageNode? Unversioned() => Graph.Package(_descriptor.ToUnversioned().ToString());
+
+            public ProjectNode? Project() => Unversioned()?.Inputs(ProjectLabels.Package)
                 .Select(link => link.Source().AsProject()).OfType<ProjectNode>()
                 .FirstOrDefault();
 

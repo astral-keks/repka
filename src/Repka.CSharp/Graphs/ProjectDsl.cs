@@ -49,7 +49,8 @@ namespace Repka.Graphs
             public bool IsPackageable => PackageId is not null;
 
             public NuGetIdentifier? PackageId => Outputs(ProjectLabels.Package)
-                .Select(link => new NuGetIdentifier(link.TargetKey.ToString()))
+                .Select(link => NuGetDescriptor.Parse(link.TargetKey))
+                .Select(descriptor => descriptor.Id)
                 .FirstOrDefault();
 
             public PackageNode? Package() => Outputs(ProjectLabels.Package)

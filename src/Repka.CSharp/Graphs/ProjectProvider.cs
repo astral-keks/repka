@@ -67,7 +67,8 @@ namespace Repka.Graphs
             string? packageId = projectElement.GetPackageId();
             if (!string.IsNullOrWhiteSpace(packageId))
             {
-                GraphKey packageKey = new(packageId);
+                NuGetDescriptor packageDescriptor = new(packageId, default(string));
+                GraphKey packageKey = new(packageDescriptor.ToString());
                 yield return new GraphLinkToken(projectToken.Key, packageKey, ProjectLabels.Package);
             }
 
