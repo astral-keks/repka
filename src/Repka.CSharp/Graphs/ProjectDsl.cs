@@ -100,14 +100,8 @@ namespace Repka.Graphs
             public IEnumerable<NuGetDescriptor> PackageReferences => Outputs(ProjectLabels.PackageReference)
                 .Select(link => NuGetDescriptor.Parse(link.TargetKey));
             
-            public IEnumerable<PackageNode> ReferencedPackages() => Outputs(ProjectLabels.PackageReference)
+            public IEnumerable<PackageNode> ReferencedPackages() => Outputs(PackageLabels.ReferencedPackage)
                 .Select(link => link.Target().AsPackage()).OfType<PackageNode>();
-
-            public IEnumerable<PackageNode> DependencyPackages() => Outputs(PackageLabels.DependencyPackage)
-                .Select(link => link.Target().AsPackage()).OfType<PackageNode>();
-
-            public IEnumerable<PackageNode> DependentPackages() => Inputs(PackageLabels.DependencyPackage)
-                .Select(link => link.Source().AsPackage()).OfType<PackageNode>();
 
 
             public IEnumerable<AssemblyNode> RestoredAssemblies() => Outputs(AssemblyLabels.Restored)

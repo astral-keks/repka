@@ -49,7 +49,7 @@ namespace Repka.Graphs
             foreach (var packageDependency in packageDependencies)
             {
                 GraphKey packageDependencyKey = new(packageDependency.ToString());
-                yield return new GraphLinkToken(projectNode.Key, packageDependencyKey, PackageLabels.DependencyPackage);
+                yield return new GraphLinkToken(projectNode.Key, packageDependencyKey, PackageLabels.ReferencedPackage);
 
                 foreach (var token in GetPackageTokens(packageDependency, packageIdsFromProjects, packageInspection))
                     yield return token;
@@ -91,7 +91,7 @@ namespace Repka.Graphs
                         packageDependencyKey = new(packageDependency.ToString());
                     }
 
-                    yield return new GraphLinkToken(packageKey, packageDependencyKey, PackageLabels.DependencyPackage)
+                    yield return new GraphLinkToken(packageKey, packageDependencyKey, PackageLabels.ReferencedPackage)
                         .Mark(packageReference.Framework.ToMoniker());
                 }
             }

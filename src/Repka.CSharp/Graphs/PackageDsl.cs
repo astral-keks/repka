@@ -24,19 +24,19 @@ namespace Repka.Graphs
 
         public class PackageNode : GraphNode
         {
+            private readonly NuGetDescriptor _descriptor;
+
             internal PackageNode(GraphNode node) : base(node)
             {
-                Descriptor = NuGetDescriptor.Parse(Key);
+                _descriptor = NuGetDescriptor.Parse(Key);
             }
 
-            public NuGetIdentifier Id => Descriptor.Id;
+            public NuGetIdentifier Id => _descriptor.Id;
 
-            public NuGetVersion? Version => Descriptor.Version;
+            public NuGetVersion? Version => _descriptor.Version;
 
-            public NuGetDescriptor Descriptor { get; }
-
-
-            public ProjectNode? Project() => Inputs(ProjectLabels.Package)
+            public ProjectNode? Project() => Graph.Links(new GraphKey(Id.ToString()), ProjectLabels.Package)
+                .Where(link => link.TargetKey == Id.ToString())
                 .Select(link => link.Source().AsProject()).OfType<ProjectNode>()
                 .FirstOrDefault();
 
@@ -51,7 +51,7 @@ namespace Repka.Graphs
                 .Select(nearest => nearest.Link.TargetKey.AsAssemblyName());
 
             
-            public IEnumerable<ProjectNode> DependingProjects() => Inputs(PackageLabels.DependencyPackage)
+            public IEnumerable<ProjectNode> ReferencingProjects() => Inputs(PackageLabels.ReferencedPackage)
                 .Select(link => link.Source().AsProject()).OfType<ProjectNode>();
 
 
@@ -59,11 +59,11 @@ namespace Repka.Graphs
                 .GroupByTargetFramework().SelectNearest(targetFramework)
                 .Select(nearest => NuGetDescriptor.Parse(nearest.Link.TargetKey));
 
-            public IEnumerable<PackageNode> DependencyPackages(string? targetFramework) => Outputs(PackageLabels.DependencyPackage)
+            public IEnumerable<PackageNode> ReferencedPackages(string? targetFramework) => Outputs(PackageLabels.ReferencedPackage)
                 .GroupByTargetFramework().SelectNearest(targetFramework)
                 .Select(nearest => nearest.Link.Target().AsPackage()).OfType<PackageNode>();
 
-            public IEnumerable<PackageNode> DependentPackages(string? targetFramework) => Inputs(PackageLabels.DependencyPackage)
+            public IEnumerable<PackageNode> ReferencingPackages(string? targetFramework) => Inputs(PackageLabels.ReferencedPackage)
                 .GroupByTargetFramework().SelectNearest(targetFramework)
                 .Select(nearest => nearest.Link.Source().AsPackage()).OfType<PackageNode>();
 
@@ -114,7 +114,7 @@ namespace Repka.Graphs
             public const string AssemblyAsset = $"{Package}.{nameof(AssemblyAsset)}";
             public const string AssemblyReference = $"{Package}.{nameof(AssemblyReference)}";
             public const string PackageReference = $"{Package}.{nameof(PackageReference)}";
-            public const string DependencyPackage = $"{Package}.{nameof(DependencyPackage)}";
+            public const string ReferencedPackage = $"{Package}.{nameof(ReferencedPackage)}";
         }
     }
 }

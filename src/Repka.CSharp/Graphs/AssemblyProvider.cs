@@ -65,7 +65,7 @@ namespace Repka.Graphs
                         yield return new AbsolutePath(assembly.Location);
                 }
 
-                foreach (var dependencyPackage in packageNode.DependencyPackages(TargetFramework))
+                foreach (var dependencyPackage in packageNode.ReferencedPackages(TargetFramework))
                 {
                     foreach (var assemblyPath in GetPackageAssemblies(dependencyPackage, packageInspection))
                         yield return assemblyPath;
@@ -94,7 +94,7 @@ namespace Repka.Graphs
                         yield return new AbsolutePath(assembly.Location);
                 }
 
-                foreach (var dependencyPackage in projectNode.DependencyPackages())
+                foreach (var dependencyPackage in projectNode.ReferencedPackages())
                 {
                     foreach (var assemblyNode in dependencyPackage.RestoredAssemblies())
                         yield return assemblyNode.Location;

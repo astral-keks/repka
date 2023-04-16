@@ -118,7 +118,7 @@ namespace Repka.Graphs
         }
 
         private enum DependencyKind { ProjectRef = 1, PackageRef = 2, Transitive = 4 }
-        private IEnumerable<(ProjectNode, DependencyKind)> GetDependencyProjects(ProjectNode projectNode, 
+        private IEnumerable<(ProjectNode, DependencyKind)> GetDependencyProjects(ProjectNode projectNode,
             Dictionary<NuGetIdentifier, ProjectNode> packagableProjects,
             Inspection<ProjectNode, (ProjectNode, DependencyKind)> projectInspection)
         {
