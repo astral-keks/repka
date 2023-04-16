@@ -25,19 +25,6 @@ namespace Repka.Graphs
                     graph.Add(token);
                 projectProgress.Complete();
 
-                List<ProjectNode> projectNodes = graph.Projects().ToList();
-                Dictionary<NuGetIdentifier, ProjectNode> packagableProjects = projectNodes
-                    .Where(projectNode => projectNode.PackageId is not null)
-                    .ToDictionary(projectNode => projectNode.PackageId!);
-                ProgressPercentage dependencyProgress = Progress.Percent("Restoring project dependencies", projectNodes.Count);
-                Inspection<ProjectNode, (ProjectNode, DependencyKind)> projectInspection = new();
-                IEnumerable<GraphToken> dependencyTokens = projectNodes
-                    .Peek(dependencyProgress.Increment)
-                    .SelectMany(projectNode => GetDependencyTokens(projectNode, packagableProjects, projectInspection))
-                    .ToList();
-                foreach (var token in dependencyTokens)
-                    graph.Add(token);
-                dependencyProgress.Complete();
             }
         }
 
@@ -104,45 +91,5 @@ namespace Repka.Graphs
             }
         }
 
-        private IEnumerable<GraphToken> GetDependencyTokens(ProjectNode projectNode, Dictionary<NuGetIdentifier, ProjectNode> packagableProjects,
-            Inspection<ProjectNode, (ProjectNode, DependencyKind)> projectInspection)
-        {
-            foreach (var (dependencyProject, dependencyKind) in GetDependencyProjects(projectNode, packagableProjects, projectInspection))
-            {
-                GraphLinkToken token = new(projectNode.Key, dependencyProject.Key, ProjectLabels.ProjectDependency);
-                if (!dependencyKind.HasFlag(DependencyKind.Transitive))
-                    token.Mark(ProjectLabels.DirectDependency);
-                else if (projectNode.HasSdk || dependencyKind.HasFlag(DependencyKind.PackageRef))
-                    token.Mark(ProjectLabels.TransitiveDependency);
-                yield return token;
-            }
-        }
-
-        private enum DependencyKind { ProjectRef = 1, PackageRef = 2, Transitive = 4 }
-        private IEnumerable<(ProjectNode, DependencyKind)> GetDependencyProjects(ProjectNode projectNode,
-            Dictionary<NuGetIdentifier, ProjectNode> packagableProjects,
-            Inspection<ProjectNode, (ProjectNode, DependencyKind)> projectInspection)
-        {
-            return projectInspection.InspectOrGet(projectNode, () => visitProject().ToHashSet());
-            IEnumerable<(ProjectNode, DependencyKind)> visitProject()
-            {
-                foreach (var referencedProject in projectNode.ReferencedProjects().ToList())
-                {
-                    yield return (referencedProject, DependencyKind.ProjectRef);
-                    foreach (var (dependencyProject, dependencyKind) in GetDependencyProjects(referencedProject, packagableProjects, projectInspection))
-                        yield return (dependencyProject, dependencyKind | DependencyKind.Transitive);
-                }
-
-                foreach (var packageReference in projectNode.PackageReferences.ToList())
-                {
-                    if (packagableProjects.TryGetValue(packageReference.Id, out ProjectNode? packagableProject))
-                    {
-                        yield return (packagableProject, DependencyKind.PackageRef);
-                        foreach (var (dependencyProject, _) in GetDependencyProjects(packagableProject, packagableProjects, projectInspection))
-                            yield return (dependencyProject, DependencyKind.PackageRef | DependencyKind.Transitive);
-                    }
-                }
-            }
-        }
     }
 }

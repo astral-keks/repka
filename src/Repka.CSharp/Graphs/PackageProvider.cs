@@ -43,7 +43,7 @@ namespace Repka.Graphs
             }
 
             IEnumerable<NuGetDescriptor> packageDependencies = projectNode.PackageReferences
-                .Where(packageReference => !packageIdsFromProjects.Contains(packageReference.Id))
+                //.Where(packageReference => !packageIdsFromProjects.Contains(packageReference.Id))
                 .Select(packageReference => NuGetManager.ResolvePackage(packageReference))
                 .ToList();
             foreach (var packageDependency in packageDependencies)

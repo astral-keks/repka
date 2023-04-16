@@ -85,17 +85,8 @@ namespace Repka.Graphs
             public IEnumerable<ProjectNode> ReferencedProjects() => Outputs(ProjectLabels.ProjectReference)
                 .Select(link => link.Target().AsProject()).OfType<ProjectNode>();
 
-            public IEnumerable<ProjectNode> DependencyProjects(bool includeTransitive = true) => Outputs(ProjectLabels.ProjectDependency)
-                .Where(link => IsDependencyProject(link, includeTransitive))
-                .Select(link => link.Target().AsProject()).OfType<ProjectNode>();
-
-            public IEnumerable<ProjectNode> DependentProjects(bool includeTransitive = true) => Inputs(ProjectLabels.ProjectDependency)
-                .Where(link => IsDependencyProject(link, includeTransitive))
+            public IEnumerable<ProjectNode> ReferencingProjects() => Inputs(ProjectLabels.ProjectReference)
                 .Select(link => link.Source().AsProject()).OfType<ProjectNode>();
-
-            private bool IsDependencyProject(GraphLink link, bool includeTransitive) => includeTransitive
-                ? link.Labels.ContainsAny(ProjectLabels.DirectDependency, ProjectLabels.TransitiveDependency)
-                : link.Labels.Contains(ProjectLabels.DirectDependency);
 
 
             public IEnumerable<NuGetDescriptor> PackageReferences => Outputs(ProjectLabels.PackageReference)
