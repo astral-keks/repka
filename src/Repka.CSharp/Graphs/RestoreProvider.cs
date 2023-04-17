@@ -85,18 +85,20 @@ namespace Repka.Graphs
         #region Packages
         private IEnumerable<GraphToken> GetPackageTokens(IEnumerable<PackageNode> packageNodes, IEnumerable<ProjectNode> projectNodes)
         {
+            Inspection<PackageNode, PackageNode> packageInspection = new();
             foreach (var packageNode in packageNodes)
             {
-                foreach (var dependencyPackage in RestorePackages(packageNode))
+                foreach (var dependencyPackage in RestorePackages(packageNode, packageInspection))
                 {
                     GraphLinkToken token = new(packageNode.Key, dependencyPackage.Key, RestoreLabels.PackageDependency);
                     yield return token;
                 }
             }
 
+            Inspection<ProjectNode, PackageNode> projectInspection = new();
             foreach (var projectNode in projectNodes)
             {
-                foreach (var dependencyPackage in RestorePackages(projectNode))
+                foreach (var dependencyPackage in RestorePackages(projectNode, projectInspection))
                 {
                     GraphLinkToken token = new(projectNode.Key, dependencyPackage.Key, RestoreLabels.PackageDependency);
                     yield return token;
@@ -104,12 +106,13 @@ namespace Repka.Graphs
             }
         }
 
-        private ICollection<PackageNode> RestorePackages(PackageNode packageNode)
+        private ICollection<PackageNode> RestorePackages(PackageNode packageNode,
+            Inspection<PackageNode, PackageNode> packageInspection)
         {
             return packageNode.ToOptional()
                 .Recurse(packageNode => packageNode.ReferencedPackages(TargetFramework))
                 .Flatten()
-                .SelectMany(visitPackage)
+                .SelectMany(packageNode => packageInspection.InspectOrGet(packageNode, () => visitPackage(packageNode).ToHashSet()))
                 .ToHashSet();
             IEnumerable<PackageNode> visitPackage(PackageNode packageNode)
             {
@@ -118,12 +121,13 @@ namespace Repka.Graphs
             }
         }
 
-        private ICollection<PackageNode> RestorePackages(ProjectNode projectNode)
+        private ICollection<PackageNode> RestorePackages(ProjectNode projectNode,
+            Inspection<ProjectNode, PackageNode> projectInspection)
         {
             return projectNode.ToOptional()
                 .Recurse(projectNode => projectNode.ReferencedProjects())
                 .Flatten()
-                .SelectMany(visitProject)
+                .SelectMany(projectNode => projectInspection.InspectOrGet(projectNode, () => visitProject(projectNode).ToHashSet()))
                 .ToHashSet();
             IEnumerable<PackageNode> visitProject(ProjectNode projectNode)
             {
