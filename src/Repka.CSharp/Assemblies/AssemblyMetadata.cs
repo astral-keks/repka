@@ -1,4 +1,5 @@
-﻿using Repka.Strings;
+﻿using Repka.Paths;
+using Repka.Strings;
 
 namespace Repka.Assemblies
 {
@@ -6,13 +7,13 @@ namespace Repka.Assemblies
     {
         public AssemblyMetadata(string location) : base(location)
         {
-            Location = location;
+            Location = new(location);
 
             _exists = new(GetExists, true);
             _name = new(GetName, true);
         }
 
-        public string Location { get; }
+        public AbsolutePath Location { get; }
 
         public bool Exists => _exists.Value;
         private readonly Lazy<bool> _exists;

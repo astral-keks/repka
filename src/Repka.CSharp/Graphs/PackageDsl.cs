@@ -41,19 +41,24 @@ namespace Repka.Graphs
                 .Select(link => link.Source().AsProject()).OfType<ProjectNode>()
                 .FirstOrDefault();
 
-            
+            public IEnumerable<ProjectNode> ReferencingProjects() => Inputs(PackageLabels.ReferencedPackage)
+                .Select(link => link.Source().AsProject()).OfType<ProjectNode>();
+
+
             public IEnumerable<AbsolutePath> AssemblyAssets(string? targetFramework) => Outputs(PackageLabels.AssemblyAsset)
                 .GroupByTargetFramework().SelectNearest(targetFramework)
                 .Select(nearest => nearest.Link.TargetKey.AsAbsolutePath());
-
             
+            public IEnumerable<AssemblyNode> AssetAssemblies() => Outputs(PackageLabels.AssemblyAsset)
+                .Select(link => link.Target().AsAssembly()).OfType<AssemblyNode>();
+
+
             public IEnumerable<AssemblyName> AssemblyReferences(string? targetFramework) => Outputs(PackageLabels.AssemblyReference)
                 .GroupByTargetFramework().SelectNearest(targetFramework)
                 .Select(nearest => nearest.Link.TargetKey.AsAssemblyName());
 
-            
-            public IEnumerable<ProjectNode> ReferencingProjects() => Inputs(PackageLabels.ReferencedPackage)
-                .Select(link => link.Source().AsProject()).OfType<ProjectNode>();
+            public IEnumerable<AssemblyNode> ReferencedAssemblies() => Outputs(AssemblyLabels.AssemblyReference)
+                .Select(link => link.Target().AsAssembly()).OfType<AssemblyNode>();
 
 
             public IEnumerable<NuGetDescriptor> PackageReferences(string? targetFramework) => Outputs(ProjectLabels.PackageReference)
@@ -67,10 +72,6 @@ namespace Repka.Graphs
             public IEnumerable<PackageNode> ReferencingPackages(string? targetFramework) => Inputs(PackageLabels.ReferencedPackage)
                 .GroupByTargetFramework().SelectNearest(targetFramework)
                 .Select(nearest => nearest.Link.Source().AsPackage()).OfType<PackageNode>();
-
-
-            public IEnumerable<AssemblyNode> RestoredAssemblies() => Outputs(AssemblyLabels.Restored)
-                .Select(link => link.Target().AsAssembly()).OfType<AssemblyNode>();
         }
 
         public class PackageGrouping

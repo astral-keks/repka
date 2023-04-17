@@ -21,12 +21,16 @@ namespace Repka.Graphs
                 .Select(dependency => dependency.SourceProject());
 
 
-        public static IEnumerable<PackageDependencyLink> PackageDependencies(this PackageNode package) => 
-            package.Outputs(RestoreLabels.PackageDependency)
+        public static IEnumerable<PackageDependencyLink> PackageDependencies(this ProjectNode project) => PackageDependencies((GraphNode)project);
+        public static IEnumerable<PackageDependencyLink> PackageDependencies(this PackageNode package) => PackageDependencies((GraphNode)package);
+        private static IEnumerable<PackageDependencyLink> PackageDependencies(this GraphNode node) => 
+            node.Outputs(RestoreLabels.PackageDependency)
                 .Select(link => new PackageDependencyLink(link));
 
-        public static IEnumerable<PackageNode> RestoredPackages(this PackageNode package) => 
-            package.Outputs(RestoreLabels.PackageDependency)
+        public static IEnumerable<PackageNode> RestoredPackages(this ProjectNode project) => RestoredPackages((GraphNode)project);
+        public static IEnumerable<PackageNode> RestoredPackages(this PackageNode package) => RestoredPackages((GraphNode)package);
+        private static IEnumerable<PackageNode> RestoredPackages(this GraphNode node) => 
+            node.Outputs(RestoreLabels.PackageDependency)
                 .Select(link => new PackageDependencyLink(link))
                 .Select(dependency => dependency.TargetPackage());
 
@@ -36,19 +40,18 @@ namespace Repka.Graphs
                 .Select(dependency => dependency.SourcePackage());
 
 
-        public static IEnumerable<AssemblyDependencyLink> AssemblyDependencies(this AssemblyNode package) => 
+        public static IEnumerable<AssemblyDependencyLink> AssemblyDependencies(this ProjectNode project) => AssemblyDependencies((GraphNode)project);
+        public static IEnumerable<AssemblyDependencyLink> AssemblyDependencies(this PackageNode package) => AssemblyDependencies((GraphNode)package);
+        public static IEnumerable<AssemblyDependencyLink> AssemblyDependencies(this GraphNode package) => 
             package.Outputs(RestoreLabels.AssemblyDependency)
                 .Select(link => new AssemblyDependencyLink(link));
 
-        public static IEnumerable<AssemblyNode> RestoredAssemblies(this AssemblyNode package) => 
+        public static IEnumerable<AssemblyNode> RestoredAssemblies(this ProjectNode project) => RestoredAssemblies((GraphNode)project);
+        public static IEnumerable<AssemblyNode> RestoredAssemblies(this PackageNode package) => RestoredAssemblies((GraphNode)package);
+        private static IEnumerable<AssemblyNode> RestoredAssemblies(this GraphNode package) => 
             package.Outputs(RestoreLabels.AssemblyDependency)
                 .Select(link => new AssemblyDependencyLink(link))
                 .Select(dependency => dependency.TargetAssembly());
-
-        public static IEnumerable<AssemblyNode> RestoringAssemblies(this AssemblyNode package) => 
-            package.Inputs(RestoreLabels.AssemblyDependency)
-                .Select(link => new AssemblyDependencyLink(link))
-                .Select(dependency => dependency.SourceAssembly());
 
 
         public class ProjectDependencyLink : DependencyLink

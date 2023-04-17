@@ -36,17 +36,17 @@ namespace Repka.Graphs
                 .Select(link => link.Source().AsPackage()).OfType<PackageNode>()
                 .SingleOrDefault();
 
-            public IEnumerable<ProjectNode> DependentProjects() => Inputs(AssemblyLabels.Restored)
+            public IEnumerable<ProjectNode> ReferencingProjects() => Inputs(AssemblyLabels.AssemblyReference)
                 .Select(link => link.Source().AsProject()).OfType<ProjectNode>();
 
-            public IEnumerable<PackageNode> DependentPackages() => Inputs(AssemblyLabels.Restored)
+            public IEnumerable<PackageNode> ReferencingPackages() => Inputs(AssemblyLabels.AssemblyReference)
                 .Select(link => link.Source().AsPackage()).OfType<PackageNode>();
         }
 
         public static class AssemblyLabels
         {
             public const string Assembly = nameof(Assembly);
-            public const string Restored = $"{Assembly}.{nameof(Restored)}";
+            public const string AssemblyReference = $"{Assembly}.{nameof(AssemblyReference)}";
         }
 
         public static class AssemblyAttributes

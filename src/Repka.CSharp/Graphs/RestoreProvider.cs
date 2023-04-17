@@ -29,14 +29,21 @@ namespace Repka.Graphs
                 graph.Add(token);
             packageProgress.Complete();
 
+            ProgressPercentage assemblyProgress = Progress.Percent("Restoring assemblies", packageNodes.Count + projectNodes.Count);
+            IEnumerable<GraphToken> assemblyTokens = GetAssemblyTokens(packageNodes.Peek(assemblyProgress.Increment),
+                projectNodes.Peek(assemblyProgress.Increment));
+            foreach (var token in assemblyTokens)
+                graph.Add(token);
+            assemblyProgress.Complete();
         }
 
+        #region Projects
         private IEnumerable<GraphToken> GetProjectTokens(IEnumerable<ProjectNode> projectNodes)
         {
             Inspection<ProjectNode, (ProjectNode, DependencyKind, DependencyOrigin)> projectInspection = new();
             foreach (var projectNode in projectNodes)
             {
-                foreach (var (dependencyProject, dependencyKind, dependencyOrigin) in GetProjectDependencies(projectNode, projectInspection))
+                foreach (var (dependencyProject, dependencyKind, dependencyOrigin) in RestoreProject(projectNode, projectInspection))
                 {
                     if (projectNode.HasSdk || dependencyKind == DependencyKind.Direct || dependencyOrigin == DependencyOrigin.Package)
                     {
@@ -48,7 +55,7 @@ namespace Repka.Graphs
             }
         }
 
-        private IEnumerable<(ProjectNode Project, DependencyKind Kind, DependencyOrigin Origin)> GetProjectDependencies(ProjectNode projectNode, 
+        private IEnumerable<(ProjectNode Project, DependencyKind Kind, DependencyOrigin Origin)> RestoreProject(ProjectNode projectNode,
             Inspection<ProjectNode, (ProjectNode, DependencyKind, DependencyOrigin)> projectInspection)
         {
             return projectInspection.InspectOrGet(projectNode, () => visitProject().ToHashSet());
@@ -57,8 +64,8 @@ namespace Repka.Graphs
                 foreach (var referencedProject in projectNode.ReferencedProjects().ToList())
                 {
                     yield return new(referencedProject, DependencyKind.Direct, DependencyOrigin.Project);
-                    foreach (var dependency in GetProjectDependencies(referencedProject, projectInspection))
-                        yield return dependency with { Kind = DependencyKind.Transitive};
+                    foreach (var dependency in RestoreProject(referencedProject, projectInspection))
+                        yield return dependency with { Kind = DependencyKind.Transitive };
                 }
 
                 foreach (var referencedPackage in projectNode.ReferencedPackages().ToList())
@@ -67,134 +74,132 @@ namespace Repka.Graphs
                     if (packagableProject is not null)
                     {
                         yield return new(packagableProject, DependencyKind.Direct, DependencyOrigin.Package);
-                        foreach (var projectDependency in GetProjectDependencies(packagableProject, projectInspection))
+                        foreach (var projectDependency in RestoreProject(packagableProject, projectInspection))
                             yield return projectDependency with { Kind = DependencyKind.Transitive, Origin = DependencyOrigin.Package };
                     }
                 }
             }
         }
+        #endregion
 
-
+        #region Packages
         private IEnumerable<GraphToken> GetPackageTokens(IEnumerable<PackageNode> packageNodes, IEnumerable<ProjectNode> projectNodes)
         {
-            Inspection<PackageNode, (PackageNode, DependencyKind, DependencyOrigin)> packageInspection = new();
             foreach (var packageNode in packageNodes)
             {
-                foreach (var (dependencyPackage, dependencyKind, _) in GetPackageDependencies(packageNode, packageInspection))
+                foreach (var dependencyPackage in RestorePackages(packageNode))
                 {
                     GraphLinkToken token = new(packageNode.Key, dependencyPackage.Key, RestoreLabels.PackageDependency);
-                    token.Mark(RestoreLabels.Kind, dependencyKind.ToString());
                     yield return token;
                 }
             }
-            
-            Inspection<ProjectNode, (PackageNode, DependencyKind, DependencyOrigin)> projectInspection = new();
+
             foreach (var projectNode in projectNodes)
             {
-                foreach (var (dependencyPackage, dependencyKind, _) in GetPackageDependencies(projectNode, projectInspection))
+                foreach (var dependencyPackage in RestorePackages(projectNode))
                 {
                     GraphLinkToken token = new(projectNode.Key, dependencyPackage.Key, RestoreLabels.PackageDependency);
-                    token.Mark(RestoreLabels.Kind, dependencyKind.ToString());
                     yield return token;
                 }
             }
         }
 
-        private IEnumerable<(PackageNode Package, DependencyKind Kind, DependencyOrigin Origin)> GetPackageDependencies(PackageNode packageNode,
-            Inspection<PackageNode, (PackageNode, DependencyKind, DependencyOrigin)> packageInspection)
+        private ICollection<PackageNode> RestorePackages(PackageNode packageNode)
         {
-            return packageInspection.InspectOrGet(packageNode, () => visitPackage().ToHashSet());
-            IEnumerable<(PackageNode, DependencyKind, DependencyOrigin)> visitPackage()
+            return packageNode.ToOptional()
+                .Recurse(packageNode => packageNode.ReferencedPackages(TargetFramework))
+                .Flatten()
+                .SelectMany(visitPackage)
+                .ToHashSet();
+            IEnumerable<PackageNode> visitPackage(PackageNode packageNode)
             {
                 foreach (var referencedPackage in packageNode.ReferencedPackages(TargetFramework).ToList())
-                {
-                    yield return new(referencedPackage, DependencyKind.Direct, DependencyOrigin.Package);
-
-                    foreach (var packageDependency in GetPackageDependencies(referencedPackage, packageInspection))
-                        yield return packageDependency with { Kind = DependencyKind.Transitive };
-                }
+                    yield return referencedPackage;
             }
         }
 
-        private IEnumerable<(PackageNode Package, DependencyKind Kind, DependencyOrigin Origin)> GetPackageDependencies(ProjectNode projectNode,
-            Inspection<ProjectNode, (PackageNode, DependencyKind, DependencyOrigin)> packageInspection)
+        private ICollection<PackageNode> RestorePackages(ProjectNode projectNode)
         {
-            return packageInspection.InspectOrGet(projectNode, () => visitProject().ToHashSet());
-            IEnumerable<(PackageNode, DependencyKind, DependencyOrigin)> visitProject()
+            return projectNode.ToOptional()
+                .Recurse(projectNode => projectNode.ReferencedProjects())
+                .Flatten()
+                .SelectMany(visitProject)
+                .ToHashSet();
+            IEnumerable<PackageNode> visitProject(ProjectNode projectNode)
             {
                 foreach (var referencedPackage in projectNode.ReferencedPackages().ToList())
                 {
                     if (referencedPackage.Project() is null)
-                    {
-                        yield return new(referencedPackage, DependencyKind.Direct, DependencyOrigin.Package);
+                        yield return referencedPackage;
 
-                        foreach (var dependencyPackage in referencedPackage.RestoredPackages().ToList())
-                            yield return new(dependencyPackage, DependencyKind.Transitive, DependencyOrigin.Package);
-                    }
+                    foreach (var dependencyPackage in referencedPackage.RestoredPackages().ToList())
+                        yield return dependencyPackage;
                 }
             }
         }
+        #endregion
 
-
-        
+        #region Assemblies
         private IEnumerable<GraphToken> GetAssemblyTokens(IEnumerable<PackageNode> packageNodes, IEnumerable<ProjectNode> projectNodes)
         {
-            Inspection<PackageNode, (AssemblyNode, DependencyKind, DependencyOrigin)> packageInspection = new();
+            Inspection<PackageNode, AssemblyNode> packageInspection = new();
             foreach (var packageNode in packageNodes)
             {
-                foreach (var (dependencyPackage, dependencyKind, _) in GetPackageDependencies(packageNode, packageInspection))
+                foreach (var dependencyPackage in RestoreAssemblies(packageNode, packageInspection))
                 {
-                    GraphLinkToken token = new(packageNode.Key, dependencyPackage.Key, RestoreLabels.PackageDependency);
-                    token.Mark(RestoreLabels.Kind, dependencyKind.ToString());
+                    GraphLinkToken token = new(packageNode.Key, dependencyPackage.Key, RestoreLabels.AssemblyDependency);
                     yield return token;
                 }
             }
-            
-            Inspection<ProjectNode, (PackageNode, DependencyKind, DependencyOrigin)> projectInspection = new();
+
+            Inspection<ProjectNode, AssemblyNode> projectInspection = new();
             foreach (var projectNode in projectNodes)
             {
-                foreach (var (dependencyPackage, dependencyKind, _) in GetPackageDependencies(projectNode, projectInspection))
+                foreach (var dependencyPackage in RestoreAssemblies(projectNode, projectInspection).Distinct())
                 {
-                    GraphLinkToken token = new(projectNode.Key, dependencyPackage.Key, RestoreLabels.PackageDependency);
-                    token.Mark(RestoreLabels.Kind, dependencyKind.ToString());
+                    GraphLinkToken token = new(projectNode.Key, dependencyPackage.Key, RestoreLabels.AssemblyDependency);
                     yield return token;
                 }
             }
         }
 
-        private IEnumerable<(PackageNode Package, DependencyKind Kind, DependencyOrigin Origin)> GetPackageDependencies(PackageNode packageNode,
-            Inspection<PackageNode, (PackageNode, DependencyKind, DependencyOrigin)> packageInspection)
+        private ICollection<AssemblyNode> RestoreAssemblies(PackageNode packageNode,
+            Inspection<PackageNode, AssemblyNode> packageInspection)
         {
-            return packageInspection.InspectOrGet(packageNode, () => visitPackage().ToHashSet());
-            IEnumerable<(PackageNode, DependencyKind, DependencyOrigin)> visitPackage()
+            return packageNode.RestoredPackages().Prepend(packageNode)
+                .SelectMany(packageNode => packageInspection.InspectOrGet(packageNode, () => visitPackage(packageNode).ToHashSet()))
+                .ToHashSet();
+            IEnumerable<AssemblyNode> visitPackage(PackageNode packageNode)
             {
-                foreach (var referencedPackage in packageNode.ReferencedPackages(TargetFramework).ToList())
-                {
-                    yield return new(referencedPackage, DependencyKind.Direct, DependencyOrigin.Package);
+                foreach (var assembly in packageNode.AssetAssemblies())
+                    yield return assembly;
 
-                    foreach (var packageDependency in GetPackageDependencies(referencedPackage, packageInspection))
-                        yield return packageDependency with { Kind = DependencyKind.Transitive };
-                }
+                foreach (var assembly in packageNode.ReferencedAssemblies())
+                    yield return assembly;
             }
         }
 
-        private IEnumerable<(PackageNode Package, DependencyKind Kind, DependencyOrigin Origin)> GetPackageDependencies(ProjectNode projectNode,
-            Inspection<ProjectNode, (PackageNode, DependencyKind, DependencyOrigin)> packageInspection)
+        private ICollection<AssemblyNode> RestoreAssemblies(ProjectNode projectNode, 
+            Inspection<ProjectNode, AssemblyNode> projectInspection)
         {
-            return packageInspection.InspectOrGet(projectNode, () => visitProject().ToHashSet());
-            IEnumerable<(PackageNode, DependencyKind, DependencyOrigin)> visitProject()
+            return projectNode.RestoredProjects().Prepend(projectNode)
+                .SelectMany(projectNode => projectInspection.InspectOrGet(projectNode, () => visitProject(projectNode).ToHashSet()))
+                .ToHashSet();
+            IEnumerable<AssemblyNode> visitProject(ProjectNode projectNode)
             {
-                foreach (var referencedPackage in projectNode.ReferencedPackages().ToList())
-                {
-                    if (referencedPackage.Project() is null)
-                    {
-                        yield return new(referencedPackage, DependencyKind.Direct, DependencyOrigin.Package);
+                foreach (var assembly in projectNode.ReferencedLibraries())
+                    yield return assembly;
+                
+                foreach (var assembly in projectNode.ReferencedAssemblies())
+                    yield return assembly;
 
-                        foreach (var dependencyPackage in referencedPackage.RestoredPackages().ToList())
-                            yield return new(dependencyPackage, DependencyKind.Transitive, DependencyOrigin.Package);
-                    }
+                foreach (var restoredPackage in projectNode.RestoredPackages())
+                {
+                    foreach (var restoredAssembly in restoredPackage.RestoredAssemblies())
+                        yield return restoredAssembly;
                 }
             }
-        }
+        } 
+        #endregion
     }
 }

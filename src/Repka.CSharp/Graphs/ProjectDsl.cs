@@ -71,6 +71,9 @@ namespace Repka.Graphs
             public IEnumerable<AssemblyName> AssemblyReferences => Outputs(ProjectLabels.AssemblyReference)
                 .Select(link => link.TargetKey.AsAssemblyName());
 
+            public IEnumerable<AssemblyNode> ReferencedAssemblies() => Outputs(AssemblyLabels.AssemblyReference)
+                .Select(link => link.Target().AsAssembly()).OfType<AssemblyNode>();
+
 
             public IEnumerable<AbsolutePath> LibraryReferences => Outputs(ProjectLabels.LibraryReference)
                 .Select(link => link.TargetKey.AsAbsolutePath());
@@ -94,10 +97,6 @@ namespace Repka.Graphs
             
             public IEnumerable<PackageNode> ReferencedPackages() => Outputs(PackageLabels.ReferencedPackage)
                 .Select(link => link.Target().AsPackage()).OfType<PackageNode>();
-
-
-            public IEnumerable<AssemblyNode> RestoredAssemblies() => Outputs(AssemblyLabels.Restored)
-                .Select(link => link.Target().AsAssembly()).OfType<AssemblyNode>();
 
 
             public IEnumerable<SolutionNode> Solutions() => Inputs(SolutionLabels.SolutionProject)

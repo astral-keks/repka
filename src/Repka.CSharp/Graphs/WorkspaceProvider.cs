@@ -7,7 +7,6 @@ using static Repka.Graphs.WorkspaceDsl;
 using static Repka.Graphs.ProjectDsl;
 using static Repka.Graphs.DocumentDsl;
 using AssemblyMetadata = Repka.Assemblies.AssemblyMetadata;
-using Microsoft.CodeAnalysis.CSharp;
 
 namespace Repka.Graphs
 {
@@ -22,13 +21,7 @@ namespace Repka.Graphs
 
             List<ProjectNode> projectNodes = graph.Projects().ToList();
             ProgressPercentage projectProgress = Progress.Percent("Creating workspace", projectNodes.Count);
-            Inspection<ProjectNode, AssemblyMetadata> assemblyDescriptorInspection = new();
-            Inspection<AssemblyMetadata, MetadataReference> metadataReferenceInspection = new();
-            IEnumerable<ProjectInfo> projectsInfo = projectNodes                
-                .Peek(projectProgress.Increment)
-                .Select(projectNode => CreateProject(projectNode,
-                    assemblyDescriptorInspection,
-                    metadataReferenceInspection));
+            IEnumerable<ProjectInfo> projectsInfo = CreateProjects(projectNodes.Peek(projectProgress.Increment));
             foreach (var projectInfo in projectsInfo)
                 workspace.AddProject(projectInfo);
             projectProgress.Complete();
@@ -54,20 +47,33 @@ namespace Repka.Graphs
             }
         }
 
-        private ProjectInfo CreateProject(ProjectNode projectNode,
-            Inspection<ProjectNode, AssemblyMetadata> assemblyDescriptorInspection, 
-            Inspection<AssemblyMetadata, MetadataReference> metadataReferenceInspection)
+        private IEnumerable<ProjectInfo> CreateProjects(IEnumerable<ProjectNode> projectNodes)
         {
-            ICollection<ProjectReference> projectReferences = GetProjectReferences(projectNode).ToList();
-            ICollection<AssemblyMetadata> assemblyDependencies = GetAssemblyDependencies(projectNode, assemblyDescriptorInspection);
-            ICollection<MetadataReference> metadataReferences = assemblyDependencies
-                .SelectMany(assembly => GetMetadataReferences(assembly, metadataReferenceInspection))
-                .ToList();
-            List<DocumentInfo> documents = projectNode.Documents().AsParallel()
-                .Select(documentNode => CreateDocument(documentNode, projectNode))
-                .ToList();
-            return ProjectInfo.Create(projectNode.Id, VersionStamp.Create(), projectNode.Name, projectNode.AssemblyName, LanguageNames.CSharp,
-                filePath: projectNode.Location, documents: documents, metadataReferences: metadataReferences, projectReferences: projectReferences);
+            Inspection<AssemblyMetadata, MetadataReference> metadataReferenceInspection = new();
+            foreach (var projectNode in projectNodes) 
+            {
+                ICollection<ProjectReference> projectReferences = projectNode.RestoredProjects()
+                    .Select(restoredProject => new ProjectReference(restoredProject.Id))
+                    .ToList();
+                ICollection<AssemblyMetadata> assemblyDependencies = projectNode.RestoredAssemblies()
+                    .Select(assemblyNode => assemblyNode.Metadata)
+                    .Where(assembly => assembly.Exists)
+                    .GroupBy(assembly => assembly.Name)
+                    .Select(assemblyGroup => assemblyGroup.MaxBy(assembly => assembly.Version))
+                    .OfType<AssemblyMetadata>()
+                    .ToHashSet();
+                ICollection<MetadataReference> metadataReferences = assemblyDependencies
+                    .SelectMany(assembly => metadataReferenceInspection.InspectOrGet(assembly, () => new[]
+                    {
+                        MetadataReference.CreateFromFile(assembly.Location)
+                    }))
+                    .ToList();
+                List<DocumentInfo> documents = projectNode.Documents().AsParallel()
+                    .Select(documentNode => CreateDocument(documentNode, projectNode))
+                    .ToList();
+                yield return ProjectInfo.Create(projectNode.Id, VersionStamp.Create(), projectNode.Name, projectNode.AssemblyName, LanguageNames.CSharp,
+                    filePath: projectNode.Location, documents: documents, metadataReferences: metadataReferences, projectReferences: projectReferences);
+            }
         }
 
         private DocumentInfo CreateDocument(DocumentNode documentNode, ProjectNode projectNode)
@@ -78,42 +84,6 @@ namespace Repka.Graphs
             DocumentInfo documentInfo = DocumentInfo.Create(documentId, documentNode.Name,
                 loader: TextLoader.From(documentText), filePath: documentNode.Location);
             return documentInfo;
-        }
-
-        private IEnumerable<ProjectReference> GetProjectReferences(ProjectNode projectNode)
-        {
-            foreach (var dependencyProject in projectNode.RestoredProjects())
-            {
-                yield return new ProjectReference(dependencyProject.Id);
-            }
-        }
-
-        private ICollection<AssemblyMetadata> GetAssemblyDependencies(ProjectNode projectNode,
-            Inspection<ProjectNode, AssemblyMetadata> assemblyDescriptorInspection)
-        {
-            return assemblyDescriptorInspection.InspectOrGet(projectNode, () => visitProject().ToHashSet());
-            IEnumerable<AssemblyMetadata> visitProject()
-            {
-                IEnumerable<AssemblyMetadata> assemblies = projectNode.RestoredAssemblies()
-                    .Select(assemblyNode => assemblyNode.Metadata)
-                    .Where(assembly => assembly.Exists)
-                    .GroupBy(assembly => assembly.Name)
-                    .Select(assemblyGroup => assemblyGroup.MaxBy(assembly => assembly.Version))
-                    .OfType<AssemblyMetadata>();
-                foreach (var assembly in assemblies)
-                    yield return assembly;
-            }
-        }
-
-        private ICollection<MetadataReference> GetMetadataReferences(AssemblyMetadata assembly,
-            Inspection<AssemblyMetadata, MetadataReference> metadataReferenceInspection)
-        {
-            return metadataReferenceInspection.InspectOrGet(assembly, () => visitAssembly().ToList());
-            IEnumerable<MetadataReference> visitAssembly()
-            {
-                if (assembly.Exists)
-                    yield return MetadataReference.CreateFromFile(assembly.Location);
-            }
         }
     }
 }
