@@ -76,7 +76,7 @@ namespace Repka.Graphs
         private IEnumerable<AbsolutePath> GetProjectAssemblies(ProjectNode projectNode,
             Inspection<ProjectNode, AbsolutePath> projectInspection)
         {
-            return projectNode.DependencyProjects().Prepend(projectNode)
+            return projectNode.RestoredProjects().Prepend(projectNode)
                 .SelectMany(projectNode => projectInspection.InspectOrGet(projectNode, () => visitProject(projectNode).ToHashSet()))
                 .ToHashSet();
             IEnumerable<AbsolutePath> visitProject(ProjectNode projectNode)
