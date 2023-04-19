@@ -13,7 +13,7 @@ namespace Repka.Workspaces
             {
                 if (inspector.Equals(default))
                     inspector = WorkspaceInspector.Default;
-                using (ReportWriter writer = provider.GetWriter(inspector.Root, "diagnostics"))
+                using (ReportWriter writer = provider.GetWriter("diagnostics"))
                 {
                     IEnumerable<Report?> reports = workspace.CurrentSolution.Projects.AsParallel(8)
                         .Select(project =>

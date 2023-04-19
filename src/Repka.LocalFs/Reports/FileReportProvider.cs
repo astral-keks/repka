@@ -1,15 +1,21 @@
-﻿using Repka.FileSystems;
-
-namespace Repka.Diagnostics
+﻿namespace Repka.Diagnostics
 {
     public class FileReportProvider : ReportProvider
     {
-        public override ReportWriter GetWriter(string store, string name)
-        {
-            string directory = FileSystemPaths.Aux(store);
-            Directory.CreateDirectory(directory);
+        private readonly string _root;
 
-            string location = Path.Combine(directory, $"{name}.txt");
+        public FileReportProvider(string root)
+        {
+            _root = root;
+        }
+
+        public override ReportWriter GetWriter(string name)
+        {
+            string location = Path.Combine(_root, $"{name}-{DateTime.UtcNow:yyyyMMdd-HHmmssfff}.txt");
+            string? directory = Path.GetDirectoryName(location);
+            if (directory is not null )
+                Directory.CreateDirectory(directory);
+
             StreamWriter writer = new(location);
             return new FileReportWriter(writer);
         }

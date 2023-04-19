@@ -1,12 +1,17 @@
-﻿using Repka.FileSystems;
-
-namespace Repka.Diagnostics
+﻿namespace Repka.Diagnostics
 {
     public class DirectoryReportProvider : ReportProvider
     {
-        public override ReportWriter GetWriter(string store, string name)
+        private readonly string _root;
+
+        public DirectoryReportProvider(string root)
         {
-            string directory = Path.Combine(FileSystemPaths.Aux(store), $"{name}-{DateTime.UtcNow:yyyyMMdd-HHmmssfff}");
+            _root = root;
+        }
+
+        public override ReportWriter GetWriter(string name)
+        {
+            string directory = Path.Combine(_root, $"{name}-{DateTime.UtcNow:yyyyMMdd-HHmmssfff}");
             Directory.CreateDirectory(directory);
 
             return new DirectoryReportWriter(directory);

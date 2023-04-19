@@ -6,8 +6,8 @@ namespace Repka.Workspaces
     {
         public static WorkspaceInspector Default { get; } = new()
         {
-            IncludeErrors = new() { "CS0234", "CS0246", "CS0103" },
-            IncludeSeverities = new() { DiagnosticSeverity.Error }
+            //IncludeErrors = new() { "CS0234", "CS0246", "CS0103" },
+            IncludeSeverities = new() { DiagnosticSeverity.Error },
         };
 
         public string Root { get; init; }

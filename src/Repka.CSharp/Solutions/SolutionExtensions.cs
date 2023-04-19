@@ -1,6 +1,4 @@
-﻿using Microsoft.Build.Construction;
-
-namespace Repka.Solutions
+﻿namespace Repka.Solutions
 {
     internal static class SolutionExtensions
     {
