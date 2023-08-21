@@ -68,10 +68,10 @@ namespace Repka.Graphs
                 .Select(link => link.Target().AsDocument()).OfType<DocumentNode>();
 
 
-            public IEnumerable<AssemblyName> AssemblyReferences => Outputs(ProjectLabels.AssemblyReference)
+            public IEnumerable<AssemblyName> FrameworkAssemblyReferences => Outputs(ProjectLabels.FrameworkAssemblyReference)
                 .Select(link => link.TargetKey.AsAssemblyName());
 
-            public IEnumerable<AssemblyNode> ReferencedAssemblies() => Outputs(AssemblyLabels.AssemblyReference)
+            public IEnumerable<AssemblyNode> ReferencedFrameworkAssemblies() => Outputs(AssemblyLabels.FrameworkAssemblyReference)
                 .Select(link => link.Target().AsAssembly()).OfType<AssemblyNode>();
 
 
@@ -115,18 +115,10 @@ namespace Repka.Graphs
 
             public const string Package = $"{Project}.{nameof(Package)}";
 
-            public const string AssemblyReference = $"{Project}.{nameof(AssemblyReference)}";
-
+            public const string FrameworkAssemblyReference = $"{Project}.{nameof(FrameworkAssemblyReference)}";
             public const string LibraryReference = $"{Project}.{nameof(LibraryReference)}";
-
             public const string ProjectReference = $"{Project}.{nameof(ProjectReference)}";
-            public const string ProjectDependency = $"{Project}.{nameof(ProjectDependency)}";
-
-            public const string TransitiveDependency = $"{Project}.{nameof(TransitiveDependency)}";
-            public const string DirectDependency = $"{Project}.{nameof(DirectDependency)}";
-            
             public const string PackageReference = $"{Project}.{nameof(PackageReference)}";
-
             public const string DocumentReference = $"{Project}.{nameof(DocumentReference)}";
         }
     }

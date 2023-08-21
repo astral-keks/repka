@@ -39,9 +39,10 @@ namespace Repka.Graphs
                 {
                     GraphKey assemblyKey = new(assemblyPath);
                     yield return new GraphNodeToken(assemblyKey, AssemblyLabels.Assembly);
+                    yield return new GraphLinkToken(packageNode.Key, assemblyKey, AssemblyLabels.AssemblyReference);
                 }
 
-                foreach (var assemblyName in packageNode.AssemblyReferences(TargetFramework))
+                foreach (var assemblyName in packageNode.FrameworkAssemblyReferences(TargetFramework))
                 {
                     AssemblyMetadata? assembly = TargetFramework.Resolver.FindAssembly(assemblyName);
                     if (assembly is not null)
@@ -49,6 +50,7 @@ namespace Repka.Graphs
                         GraphKey assemblyKey = new(assembly.Location);
                         yield return new GraphNodeToken(assemblyKey, AssemblyLabels.Assembly);
                         yield return new GraphLinkToken(packageNode.Key, assemblyKey, AssemblyLabels.AssemblyReference);
+                        yield return new GraphLinkToken(packageNode.Key, assemblyKey, AssemblyLabels.FrameworkAssemblyReference);
                     }
                 }
             }
@@ -63,9 +65,10 @@ namespace Repka.Graphs
                     GraphKey assemblyKey = new(assembly.Location);
                     yield return new GraphNodeToken(assemblyKey, AssemblyLabels.Assembly);
                     yield return new GraphLinkToken(projectNode.Key, assemblyKey, AssemblyLabels.AssemblyReference);
+                    yield return new GraphLinkToken(projectNode.Key, assemblyKey, AssemblyLabels.FrameworkAssemblyReference);
                 }
 
-                foreach (var assemblyName in projectNode.AssemblyReferences)
+                foreach (var assemblyName in projectNode.FrameworkAssemblyReferences)
                 {
                     AssemblyMetadata? assembly = TargetFramework.Resolver.FindAssembly(assemblyName);
                     if (assembly is not null)
@@ -73,6 +76,7 @@ namespace Repka.Graphs
                         GraphKey assemblyKey = new(assembly.Location);
                         yield return new GraphNodeToken(assemblyKey, AssemblyLabels.Assembly);
                         yield return new GraphLinkToken(projectNode.Key, assemblyKey, AssemblyLabels.AssemblyReference);
+                        yield return new GraphLinkToken(projectNode.Key, assemblyKey, AssemblyLabels.FrameworkAssemblyReference);
                     }
                 }
 
@@ -80,6 +84,7 @@ namespace Repka.Graphs
                 {
                     GraphKey assemblyKey = new(assemblyPath);
                     yield return new GraphNodeToken(assemblyKey, AssemblyLabels.Assembly);
+                    yield return new GraphLinkToken(projectNode.Key, assemblyKey, AssemblyLabels.AssemblyReference);
                 }
             }
         }

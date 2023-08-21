@@ -78,10 +78,10 @@ namespace Repka.Graphs
                 yield return new GraphLinkToken(projectKey, libraryReferenceKey, ProjectLabels.LibraryReference);
             }
 
-            foreach (var assemblyReference in projectElement.GetAssemblyReferences())
+            foreach (var assemblyReference in projectElement.GetFrameworkAssemblyReferences())
             {
                 GraphKey assemblyReferenceKey = new(assemblyReference.AssemblyName);
-                yield return new GraphLinkToken(projectKey, assemblyReferenceKey, ProjectLabels.AssemblyReference);
+                yield return new GraphLinkToken(projectKey, assemblyReferenceKey, ProjectLabels.FrameworkAssemblyReference);
             }
 
             foreach (var documentReference in projectElement.GetDocumentReferences())

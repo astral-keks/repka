@@ -47,6 +47,7 @@ namespace Repka.Graphs
         {
             public const string Assembly = nameof(Assembly);
             public const string AssemblyReference = $"{Assembly}.{nameof(AssemblyReference)}";
+            public const string FrameworkAssemblyReference = $"{Assembly}.{nameof(FrameworkAssemblyReference)}";
         }
 
         public static class AssemblyAttributes

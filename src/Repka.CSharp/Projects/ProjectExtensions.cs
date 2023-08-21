@@ -112,7 +112,7 @@ namespace Repka.Projects
                     .Select(hintPath => new LibraryReference(hintPath, Path.GetFullPath(Path.Combine(directory, hintPath)))));
         }
 
-        public static IEnumerable<AssemblyReference> GetAssemblyReferences(this ProjectRootElement project)
+        public static IEnumerable<AssemblyReference> GetFrameworkAssemblyReferences(this ProjectRootElement project)
         {
             List<AssemblyReference> frameworkAssemblies = new();
             ISet<string> targetFrameworks = project.GetTargetFrameworks();

@@ -67,14 +67,14 @@ namespace Repka.Graphs
                 foreach (var assembly in package.Assemblies)
                 {
                     GraphKey assemblyKey = new(assembly.Locaton ?? GraphKey.Null);
-                    yield return new GraphLinkToken(packageKey, assemblyKey, PackageLabels.AssemblyAsset)
+                    yield return new GraphLinkToken(packageKey, assemblyKey, PackageLabels.AssetAssembly)
                         .Mark(assembly.Framework.ToMoniker());
                 }
 
-                foreach (var assemblyReference in package.AssemblyReferences)
+                foreach (var assemblyReference in package.FrameworkAssemblyReferences)
                 {
                     GraphKey assemblyReferenceKey = new(assemblyReference.AssemblyName ?? GraphKey.Null);
-                    yield return new GraphLinkToken(packageKey, assemblyReferenceKey, PackageLabels.AssemblyReference)
+                    yield return new GraphLinkToken(packageKey, assemblyReferenceKey, PackageLabels.FrameworkAssemblyReference)
                         .Mark(assemblyReference.Framework.ToMoniker());
                 }
 

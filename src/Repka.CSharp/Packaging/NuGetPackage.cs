@@ -49,7 +49,7 @@ namespace Repka.Packaging
                 .ToList();
         }
 
-        public IReadOnlyList<NuGetAssemblyReference> AssemblyReferences => _assemblyReferences.Value;
+        public IReadOnlyList<NuGetAssemblyReference> FrameworkAssemblyReferences => _assemblyReferences.Value;
         private readonly Lazy<List<NuGetAssemblyReference>> _assemblyReferences;
         public List<NuGetAssemblyReference> GetAssemblyReferences()
         {

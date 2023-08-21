@@ -45,23 +45,23 @@ namespace Repka.Graphs
                 .Select(link => link.Source().AsProject()).OfType<ProjectNode>();
 
 
-            public IEnumerable<AbsolutePath> AssemblyAssets(string? targetFramework) => Outputs(PackageLabels.AssemblyAsset)
+            public IEnumerable<AbsolutePath> AssemblyAssets(string? targetFramework) => Outputs(PackageLabels.AssetAssembly)
                 .GroupByTargetFramework().SelectNearest(targetFramework)
                 .Select(nearest => nearest.Link.TargetKey.AsAbsolutePath());
             
-            public IEnumerable<AssemblyNode> AssetAssemblies() => Outputs(PackageLabels.AssemblyAsset)
+            public IEnumerable<AssemblyNode> AssetAssemblies() => Outputs(PackageLabels.AssetAssembly)
                 .Select(link => link.Target().AsAssembly()).OfType<AssemblyNode>();
 
 
-            public IEnumerable<AssemblyName> AssemblyReferences(string? targetFramework) => Outputs(PackageLabels.AssemblyReference)
+            public IEnumerable<AssemblyName> FrameworkAssemblyReferences(string? targetFramework) => Outputs(PackageLabels.FrameworkAssemblyReference)
                 .GroupByTargetFramework().SelectNearest(targetFramework)
                 .Select(nearest => nearest.Link.TargetKey.AsAssemblyName());
 
-            public IEnumerable<AssemblyNode> ReferencedAssemblies() => Outputs(AssemblyLabels.AssemblyReference)
+            public IEnumerable<AssemblyNode> ReferencedFrameworkAssemblies() => Outputs(AssemblyLabels.FrameworkAssemblyReference)
                 .Select(link => link.Target().AsAssembly()).OfType<AssemblyNode>();
 
 
-            public IEnumerable<NuGetDescriptor> PackageReferences(string? targetFramework) => Outputs(ProjectLabels.PackageReference)
+            public IEnumerable<NuGetDescriptor> PackageReferences(string? targetFramework) => Outputs(PackageLabels.PackageReference)
                 .GroupByTargetFramework().SelectNearest(targetFramework)
                 .Select(nearest => NuGetDescriptor.Parse(nearest.Link.TargetKey));
 
@@ -113,8 +113,8 @@ namespace Repka.Graphs
         public static class PackageLabels
         {
             public const string Package = nameof(Package);
-            public const string AssemblyAsset = $"{Package}.{nameof(AssemblyAsset)}";
-            public const string AssemblyReference = $"{Package}.{nameof(AssemblyReference)}";
+            public const string AssetAssembly = $"{Package}.{nameof(AssetAssembly)}";
+            public const string FrameworkAssemblyReference = $"{Package}.{nameof(FrameworkAssemblyReference)}";
             public const string PackageReference = $"{Package}.{nameof(PackageReference)}";
             public const string ReferencedPackage = $"{Package}.{nameof(ReferencedPackage)}";
         }

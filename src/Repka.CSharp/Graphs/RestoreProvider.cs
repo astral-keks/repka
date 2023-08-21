@@ -178,7 +178,7 @@ namespace Repka.Graphs
                 foreach (var assembly in packageNode.AssetAssemblies())
                     yield return assembly;
 
-                foreach (var assembly in packageNode.ReferencedAssemblies())
+                foreach (var assembly in packageNode.ReferencedFrameworkAssemblies())
                     yield return assembly;
             }
         }
@@ -194,7 +194,7 @@ namespace Repka.Graphs
                 foreach (var assembly in projectNode.ReferencedLibraries())
                     yield return assembly;
                 
-                foreach (var assembly in projectNode.ReferencedAssemblies())
+                foreach (var assembly in projectNode.ReferencedFrameworkAssemblies())
                     yield return assembly;
 
                 foreach (var restoredPackage in projectNode.RestoredPackages())
