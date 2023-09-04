@@ -9,6 +9,8 @@
             _root = root;
         }
 
+        public DirectoryReportProvider AsDirectory() => new(_root);
+
         public override ReportWriter GetWriter(string name)
         {
             string location = Path.Combine(_root, $"{name}-{DateTime.UtcNow:yyyyMMdd-HHmmssfff}.txt");
