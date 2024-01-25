@@ -32,9 +32,9 @@ namespace Repka.Graphs
                 GraphKey solutionKey = new(solutionFile.FullName);
                 yield return new GraphNodeToken(solutionKey, SolutionLabels.Solution);
 
-                foreach (var projectLocation in solution.Projects)
+                foreach (var solutionProject in solution.Projects)
                 {
-                    GraphKey projectKey = new(projectLocation);
+                    GraphKey projectKey = new(solutionProject.Decription);
                     yield return new GraphLinkToken(solutionKey, projectKey, SolutionLabels.SolutionProject);
                 }
             }

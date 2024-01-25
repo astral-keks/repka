@@ -4,6 +4,7 @@ namespace Repka.Paths
 {
     public sealed class AbsolutePath : Normalized
     {
+        public static AbsolutePath Create(IEnumerable<string> segments) => string.Join(Path.DirectorySeparatorChar, segments);
         public static implicit operator string(AbsolutePath path) => path.Original;
         public static implicit operator AbsolutePath(string path) => new(path);
         public AbsolutePath(string value)
@@ -13,9 +14,21 @@ namespace Repka.Paths
                 throw new ArgumentException($"Path {Original} is not absolute");
         }
 
+        public string Name => Path.GetFileName(Original); 
+
         public bool Includes(RelativePath relativePath)
         {
             return Original.Contains(relativePath.Original, StringComparison.OrdinalIgnoreCase);
+        }
+
+        public IEnumerable<AbsolutePath> Parents()
+        {
+            AbsolutePath? path = Parent();
+            while (path is not null)
+            {
+                yield return path;
+                path = path.Parent();
+            }
         }
 
         public AbsolutePath? Parent()
